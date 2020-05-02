@@ -699,7 +699,7 @@ class WPInv_Ajax {
      * @since 1.0.18
      */
     public static function payment_form() {
-        global $invoicing;
+        global $invoicing, $wpi_checkout_id, $cart_total;
 
         // Check nonce.
         if ( ! isset( $_POST['wpinv_payment_form'] ) || ! wp_verify_nonce( $_POST['wpinv_payment_form'], 'wpinv_payment_form' ) ) {
@@ -738,8 +738,23 @@ class WPInv_Ajax {
 
             foreach ( $items as $item ) {
 
+                if ( ! empty( $item['required'] ) && ! isset( $selected_items[ $item['id'] ] ) ) {
+                    wp_send_json_error( __( 'A required item is missing.', 'invoicing' ) );
+                }
+
                 if ( ! isset( $selected_items[ $item['id'] ] ) ) {
                     continue;
+                }
+
+                $quantity = 1;
+
+                if ( ! empty( $item['allow_quantities'] ) && ! empty( $data["wpinv-item-{$item['id']}-quantity"] ) ) {
+
+                    $quantity = intval( $data["wpinv-item-{$item['id']}-quantity"] );
+
+                    if ( empty( $quantity ) ) {
+                        $quantity = 1;
+                    }
                 }
 
                 // Custom pricing.
@@ -757,6 +772,7 @@ class WPInv_Ajax {
                         'item_price'   => wpinv_sanitize_amount( $item['price'] ),
                         'custom_price' => $set_price,
                         'name'         => $item['title'],
+                        'quantity'     => $quantity,
                     );
 
                 } else {
@@ -766,6 +782,7 @@ class WPInv_Ajax {
                         'item_price'   => wpinv_sanitize_amount( $item['price'] ),
                         'custom_price' => wpinv_sanitize_amount( $item['price'] ),
                         'name'         => $item['title'],
+                        'quantity'     => $quantity,
                     );
 
                 }
@@ -837,7 +854,25 @@ class WPInv_Ajax {
         unset( $prepared['billing_email'] );
         update_post_meta( $created->ID, 'payment_form_data', $prepared );
 
-        wp_send_json_success( $created->get_view_url( true ) );
+        $wpi_checkout_id = $created->ID;
+        $cart_total = wpinv_price(
+            wpinv_format_amount(
+                wpinv_get_cart_total( $created->get_cart_details(), NULL, $created ) ),
+                $created->get_currency()
+        );
+        ob_start();
+            $form_action  = esc_url( wpinv_get_checkout_uri() );
+            echo '<form id="wpinv_checkout_form" action="' . $form_action . '" method="POST" class="wpi-form wpi-payment-form-checkout-form mt-4">';
+            
+                echo wpinv_display_line_items( $created->ID );
+
+                echo "<div class='mt-4'>";
+                    do_action( 'wpinv_payment_mode_select' );
+                    do_action( 'wpinv_checkout_form_bottom' );
+                echo "</div>";
+
+            echo "</form>";
+        wp_send_json_success( ob_get_clean() );
 
     }
 

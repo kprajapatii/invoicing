@@ -1517,77 +1517,8 @@ class WPInv_Payment_Form_Elements {
      */
     public function render_items_template( $field ) {
         $restrict  = $this->get_restrict_markup( $field, 'items' );
-        echo "
-            <div $restrict class='item_totals'>
-
-                <div v-if='$field.items_type == \"total\"' class='border'>
-
-                    <div v-for='(item, index) in form_items'>
-                        <div class='row pl-2 pr-2 pt-2'>
-                            <div class='col-8'>{{item.title}}</div>
-                            <div class='col-4' v-if='! item.custom_price'>{{formatPrice(item.price)}}</div>
-                            <div class='col-4' v-if='item.custom_price'>
-                                <div class='input-group'>
-                                    <div class='input-group-prepend' v-if='\"left\" == position'>
-                                        <span class='input-group-text'>{{currency}}</span>
-                                    </div>
-                                    <input type='number' class='form-control' :placeholder='item.price' :value='item.price' :min='item.minimum_price'>
-                                    <div class='input-group-append' v-if='\"left\" != position'>
-                                        <span class='input-group-text'>{{currency}}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <small v-if='item.description' class='form-text text-muted pl-2 pr-2 m-0' v-html='item.description'></small>
-                    </div>
-
-                    <div class='mt-4 border-top'>
-                        <div class='row p-2'>
-                            <div class='col-8'><strong class='mr-5'>Total</strong></div>
-                            <div class='col-4'><strong>{{totalPrice}}</strong></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if='$field.items_type == \"checkbox\"'>
-
-                    <div class='form-check' v-for='(item, index) in form_items'>
-                        <input class='form-check-input' type='checkbox' :id='$field.id + index'>
-                        <label class='form-check-label' :for='$field.id + index'>{{item.title}} &nbsp;<strong>{{formatPrice(item.price)}}</strong></label>
-                        <small v-if='item.description' class='form-text text-muted' v-html='item.description'></small>
-                    </div>
-
-                </div>
-
-                <div v-if='$field.items_type == \"radio\"'>
-
-                    <div class='form-check' v-for='(item, index) in form_items'>
-                        <input class='form-check-input' type='radio' :name='$field.id' :id='$field.id + index'>
-                        <label class='form-check-label' :for='$field.id + index'>{{item.title}} &nbsp;<strong>{{formatPrice(item.price)}}</strong></label>
-                        <small v-if='item.description' class='form-text text-muted' v-html='item.description'></small>
-                    </div>
-
-                </div>
-
-                <div v-if='$field.items_type == \"select\"'>
-
-                    <select class='form-control custom-select'>
-                        <option value='' disabled selected='selected'>"        . __( 'Select an option', 'invoicing' ) ."</option>
-                        <option v-for='(item, index) in form_items' :value='index'>{{item.title}} &nbsp;{{formatPrice(item.price)}}</option>
-                    </select>
-                </div>
-
-                <div v-if='$field.items_type == \"multi_select\"'>
-
-                    <select class='form-control custom-select' multiple>
-                        <option v-for='(item, index) in form_items' :value='index'>{{item.title}} &nbsp;{{formatPrice(item.price)}}</option>
-                    </select>
-
-                </div>
-                
-                <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
-            </div>
-        ";
+        $label     = __( 'Item totals placeholder. Item totals will appear here. Click to set items.', 'invoicing' );
+        echo "<div $restrict class='item_totals p-4 bg-warning'>$label</div>";
     }
 
     /**
@@ -1607,14 +1538,35 @@ class WPInv_Payment_Form_Elements {
                 <?php
                     foreach( $items as $item ) {
                         $total = $total + floatval( $item['price'] );
+
+                        $class  = 'col-8';
+                        $class2 = '';
+
+                        if ( ! empty( $item['allow_quantities'] ) ) {
+                            $class = 'col-6 pt-2';
+                            $class2 = 'pt-2';
+                        }
+
+                        if ( ! empty( $item['custom_price'] ) ) {
+                            $class .= ' pt-2';
+                        }
+            
                 ?>
                     <div  class="item_totals_item">
                         <div class='row pl-2 pr-2 pt-2'>
-                            <div class='col-8'><?php echo esc_html( $item['title'] ) ?></div>
+                            <div class='<?php echo $class; ?>'><?php echo esc_html( $item['title'] ) ?></div>
 
-                            <?php  if ( empty( $item['custom_price'] ) ) { ?>
+                            <?php  if ( ! empty( $item['allow_quantities'] ) ) { ?>
 
-                                <div class='col-4'>
+                                <div class='col-2'>
+                                    <input name='wpinv-item-<?php echo (int) $item['id']; ?>-quantity' type='number' class='form-control wpinv-item-quantity-input pr-1' value='1' min='1' required>
+                                </div>
+
+                            <?php } else { ?>
+                                <input type='hidden' class='wpinv-item-quantity-input' value='1'>
+                            <?php } if ( empty( $item['custom_price'] ) ) { ?>
+
+                                <div class='col-4 <?php echo $class2; ?>'>
                                     <?php echo wpinv_price( wpinv_format_amount( $item['price'] ) ) ?>
                                     <input name='wpinv-items[<?php echo (int) $item['id']; ?>]' type='hidden' class='wpinv-item-price-input' value='<?php echo floatval( $item['price'] ); ?>'>
                                 </div>
@@ -1662,7 +1614,13 @@ class WPInv_Payment_Form_Elements {
         <?php if ( 'radio' == $field[ 'items_type' ] ) { ?>
             <div class="item_totals_type_radio">
 
-                <?php foreach( $items as $index => $item ) { ?>
+                <?php
+                    foreach( $items as $index => $item ) {
+                
+                        if ( ! empty( $item['required'] ) ) {
+                            continue;
+                        }
+                ?>
                     <div  class="form-check">
                         <input class='form-check-input wpinv-items-selector' <?php checked( ! isset( $selected_radio_item ) ); $selected_radio_item = 1; ?> type='radio' value='<?php echo $item['id']; ?>' id='<?php echo $id . $index; ?>' name='wpinv-payment-form-selected-item'>
                         <label class='form-check-label' for='<?php echo $id . $index; ?>'><?php echo sanitize_text_field( $item['title'] ); ?>&nbsp;<strong><?php echo wpinv_price( wpinv_format_amount( (float) sanitize_text_field(  $item['price'] ) ) ); ?></strong></label>
@@ -1680,13 +1638,25 @@ class WPInv_Payment_Form_Elements {
 
                         foreach ( $items as $item ) {
 
-                            $class = 'd-none';
-                            $name  = '';
+                            $class  = 'col-8';
+                            $class2 = '';
+
+                            if ( ! empty( $item['allow_quantities'] ) ) {
+                                $class = 'col-6 pt-2';
+                                $class2 = 'pt-2';
+                            }
+
+                            if ( ! empty( $item['custom_price'] ) ) {
+                                $class .= ' pt-2';
+                            }
+
+                            $class3 = 'd-none';
+                            $name   = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_radio_item ) ) {
 
                                 $total = $total + floatval( $item['price'] );
-                                $class = '';
-                                $name  = "wpinv-items[{$item['id']}]";
+                                $class3 = '';
+                                $name   = "wpinv-items[{$item['id']}]";
 
                                 if ( empty( $item['required'] ) ) {
                                     $totals_selected_radio_item = 1;
@@ -1694,17 +1664,25 @@ class WPInv_Payment_Form_Elements {
 
                             }
 
-                            $class .= " wpinv_item_{$item['id']}";
+                            $class3 .= " wpinv_item_{$item['id']}";
 
                     ?>
 
-                    <div  class="item_totals_item <?php echo $class; ?>" data-id="<?php echo (int) $item['id']; ?>">
+                    <div  class="item_totals_item <?php echo $class3; ?>" data-id="<?php echo (int) $item['id']; ?>">
                         <div class='row pl-2 pr-2 pt-2'>
-                            <div class='col-8'><?php echo esc_html( $item['title'] ) ?></div>
+                            <div class='<?php echo $class; ?>'><?php echo esc_html( $item['title'] ) ?></div>
 
-                            <?php  if ( empty( $item['custom_price'] ) ) { ?>
+                            <?php  if ( ! empty( $item['allow_quantities'] ) ) { ?>
 
-                                <div class='col-4'>
+                                <div class='col-2'>
+                                    <input name='wpinv-item-<?php echo (int) $item['id']; ?>-quantity' type='number' class='form-control wpinv-item-quantity-input pr-1' value='1' min='1' required>
+                                </div>
+
+                            <?php } else { ?>
+                                <input type='hidden' class='wpinv-item-quantity-input' value='1'>
+                            <?php } if ( empty( $item['custom_price'] ) ) { ?>
+
+                                <div class='col-4 <?php echo $class2; ?>'>
                                     <?php echo wpinv_price( wpinv_format_amount( $item['price'] ) ) ?>
                                     <input name='<?php echo $name; ?>' type='hidden' class='wpinv-item-price-input' value='<?php echo floatval( $item['price'] ); ?>'>
                                 </div>
@@ -1756,6 +1734,11 @@ class WPInv_Payment_Form_Elements {
 
                 <?php
                     foreach ( $items as $index => $item ) {
+
+                        if ( ! empty( $item['required'] ) ) {
+                            continue;
+                        }
+
                         $title = sanitize_text_field(  $item['title'] );
                         $price = wpinv_price( wpinv_format_amount( (float) sanitize_text_field(  $item['price'] ) ) );
                         $item_id    = esc_attr( $id . "_$index" );
@@ -1783,12 +1766,24 @@ class WPInv_Payment_Form_Elements {
 
                         foreach ( $items as $item ) {
 
-                            $class = 'd-none';
+                            $class  = 'col-8';
+                            $class2 = '';
+
+                            if ( ! empty( $item['allow_quantities'] ) ) {
+                                $class = 'col-6 pt-2';
+                                $class2 = 'pt-2';
+                            }
+
+                            if ( ! empty( $item['custom_price'] ) ) {
+                                $class .= ' pt-2';
+                            }
+
+                            $class3 = 'd-none';
                             $name  = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_checkbox_item ) ) {
 
                                 $total = $total + floatval( $item['price'] );
-                                $class = '';
+                                $class3 = '';
                                 $name  = "wpinv-items[{$item['id']}]";
 
                                 if ( empty( $item['required'] ) ) {
@@ -1797,17 +1792,25 @@ class WPInv_Payment_Form_Elements {
 
                             }
 
-                            $class .= " wpinv_item_{$item['id']}";
+                            $class3 .= " wpinv_item_{$item['id']}";
 
                     ?>
 
-                    <div  class="item_totals_item <?php echo $class; ?>" data-id="<?php echo (int) $item['id']; ?>">
+                    <div  class="item_totals_item <?php echo $class3; ?>" data-id="<?php echo (int) $item['id']; ?>">
                         <div class='row pl-2 pr-2 pt-2'>
-                            <div class='col-8'><?php echo esc_html( $item['title'] ) ?></div>
+                            <div class='<?php echo $class; ?>'><?php echo esc_html( $item['title'] ) ?></div>
 
-                            <?php  if ( empty( $item['custom_price'] ) ) { ?>
+                            <?php  if ( ! empty( $item['allow_quantities'] ) ) { ?>
 
-                                <div class='col-4'>
+                                <div class='col-2'>
+                                    <input name='wpinv-item-<?php echo (int) $item['id']; ?>-quantity' type='number' class='form-control wpinv-item-quantity-input pr-1' value='1' min='1' required>
+                                </div>
+
+                            <?php } else { ?>
+                                <input type='hidden' class='wpinv-item-quantity-input' value='1'>
+                            <?php } if ( empty( $item['custom_price'] ) ) { ?>
+
+                                <div class='col-4 <?php echo $class2; ?>'>
                                     <?php echo wpinv_price( wpinv_format_amount( $item['price'] ) ) ?>
                                     <input name='<?php echo $name; ?>' type='hidden' class='wpinv-item-price-input' value='<?php echo floatval( $item['price'] ); ?>'>
                                 </div>
@@ -1861,6 +1864,11 @@ class WPInv_Payment_Form_Elements {
                     $options  = array();
                     $selected = '';
                     foreach ( $items as $index => $item ) {
+
+                        if ( ! empty( $item['required'] ) ) {
+                            continue;
+                        }
+
                         $title = sanitize_text_field(  $item['title'] );
                         $price = wpinv_price( wpinv_format_amount( (float) sanitize_text_field(  $item['price'] ) ) );
                         $options[ $item['id'] ] = "$title &nbsp; ($price)";
@@ -1893,12 +1901,24 @@ class WPInv_Payment_Form_Elements {
 
                         foreach ( $items as $item ) {
 
-                            $class = 'd-none';
+                            $class  = 'col-8';
+                            $class2 = '';
+
+                            if ( ! empty( $item['allow_quantities'] ) ) {
+                                $class = 'col-6 pt-2';
+                                $class2 = 'pt-2';
+                            }
+
+                            if ( ! empty( $item['custom_price'] ) ) {
+                                $class .= ' pt-2';
+                            }
+
+                            $class3 = 'd-none';
                             $name  = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_select_item ) ) {
 
                                 $total = $total + floatval( $item['price'] );
-                                $class = '';
+                                $class3 = '';
                                 $name  = "wpinv-items[{$item['id']}]";
 
                                 if ( empty( $item['required'] ) ) {
@@ -1907,17 +1927,25 @@ class WPInv_Payment_Form_Elements {
 
                             }
 
-                            $class .= " wpinv_item_{$item['id']}";
+                            $class3 .= " wpinv_item_{$item['id']}";
 
                     ?>
 
-                    <div  class="item_totals_item <?php echo $class; ?>" data-id="<?php echo (int) $item['id']; ?>">
+                    <div  class="item_totals_item <?php echo $class3; ?>" data-id="<?php echo (int) $item['id']; ?>">
                         <div class='row pl-2 pr-2 pt-2'>
-                            <div class='col-8'><?php echo esc_html( $item['title'] ) ?></div>
+                            <div class='<?php echo $class; ?>'><?php echo esc_html( $item['title'] ) ?></div>
 
-                            <?php  if ( empty( $item['custom_price'] ) ) { ?>
+                            <?php  if ( ! empty( $item['allow_quantities'] ) ) { ?>
 
-                                <div class='col-4'>
+                                <div class='col-2'>
+                                    <input name='wpinv-item-<?php echo (int) $item['id']; ?>-quantity' type='number' class='form-control wpinv-item-quantity-input pr-1' value='1' min='1' required>
+                                </div>
+
+                            <?php } else { ?>
+                                <input type='hidden' class='wpinv-item-quantity-input' value='1'>
+                            <?php } if ( empty( $item['custom_price'] ) ) { ?>
+
+                                <div class='col-4 <?php echo $class2; ?>'>
                                     <?php echo wpinv_price( wpinv_format_amount( $item['price'] ) ) ?>
                                     <input name='<?php echo $name; ?>' type='hidden' class='wpinv-item-price-input' value='<?php echo floatval( $item['price'] ); ?>'>
                                 </div>
@@ -1972,6 +2000,11 @@ class WPInv_Payment_Form_Elements {
                     $selected = array();
 
                     foreach ( $items as $index => $item ) {
+
+                        if ( ! empty( $item['required'] ) ) {
+                            continue;
+                        }
+                    
                         $title = sanitize_text_field(  $item['title'] );
                         $price = wpinv_price( wpinv_format_amount( (float) sanitize_text_field(  $item['price'] ) ) );
                         $options[ $item['id'] ] = "$title &nbsp; ($price)";
@@ -1990,7 +2023,7 @@ class WPInv_Payment_Form_Elements {
                                 'no_wrap'     => true,
                                 'options'     => $options,
                                 'multiple'    => true,
-                                'class'       => 'wpi_select2 wpinv-items-select-selector',
+                                'class'       => 'wpi_select2 wpinv-items-multiselect-selector',
                                 'value'       => $selected,
                         )
                     );
@@ -2004,12 +2037,24 @@ class WPInv_Payment_Form_Elements {
 
                         foreach ( $items as $item ) {
 
-                            $class = 'd-none';
+                            $class  = 'col-8';
+                            $class2 = '';
+
+                            if ( ! empty( $item['allow_quantities'] ) ) {
+                                $class = 'col-6 pt-2';
+                                $class2 = 'pt-2';
+                            }
+
+                            if ( ! empty( $item['custom_price'] ) ) {
+                                $class .= ' pt-2';
+                            }
+
+                            $class3 = 'd-none';
                             $name  = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_select_item ) ) {
 
                                 $total = $total + floatval( $item['price'] );
-                                $class = '';
+                                $class3 = '';
                                 $name  = "wpinv-items[{$item['id']}]";
 
                                 if ( empty( $item['required'] ) ) {
@@ -2018,17 +2063,25 @@ class WPInv_Payment_Form_Elements {
 
                             }
 
-                            $class .= " wpinv_item_{$item['id']}";
+                            $class3 .= " wpinv_item_{$item['id']}";
 
                     ?>
 
-                    <div  class="item_totals_item <?php echo $class; ?>" data-id="<?php echo (int) $item['id']; ?>">
+                    <div  class="item_totals_item <?php echo $class3; ?>" data-id="<?php echo (int) $item['id']; ?>">
                         <div class='row pl-2 pr-2 pt-2'>
-                            <div class='col-8'><?php echo esc_html( $item['title'] ) ?></div>
+                            <div class='<?php echo $class; ?>'><?php echo esc_html( $item['title'] ) ?></div>
 
-                            <?php  if ( empty( $item['custom_price'] ) ) { ?>
+                            <?php  if ( ! empty( $item['allow_quantities'] ) ) { ?>
 
-                                <div class='col-4'>
+                                <div class='col-2'>
+                                    <input name='wpinv-item-<?php echo (int) $item['id']; ?>-quantity' type='number' class='form-control wpinv-item-quantity-input pr-1' value='1' min='1' required>
+                                </div>
+
+                            <?php } else { ?>
+                                <input type='hidden' class='wpinv-item-quantity-input' value='1'>
+                            <?php } if ( empty( $item['custom_price'] ) ) { ?>
+
+                                <div class='col-4 <?php echo $class2; ?>'>
                                     <?php echo wpinv_price( wpinv_format_amount( $item['price'] ) ) ?>
                                     <input name='<?php echo $name; ?>' type='hidden' class='wpinv-item-price-input' value='<?php echo floatval( $item['price'] ); ?>'>
                                 </div>
@@ -2094,6 +2147,8 @@ class WPInv_Payment_Form_Elements {
         $label4   = esc_attr__( 'This will be shown to the customer as the recommended price', 'invoicing' );
         $label5   = esc_attr__( 'Allow users to pay what they want', 'invoicing' );
         $label6   = esc_attr__( 'Enter the minimum price that a user can pay', 'invoicing' );
+        $label7   = esc_attr__( 'Allow users to buy several quantities', 'invoicing' );
+        $label8   = esc_attr__( 'This item is required', 'invoicing' );
         echo "<div $restrict>
 
                 <label>$label2</label>
@@ -2133,6 +2188,16 @@ class WPInv_Payment_Form_Elements {
                                     <label :for='$id + item.id + \"minimum_price\"'>Minimum Price</label>
                                     <input :id='$id + item.id + \"minimum_price\"' placeholder='0.00' v-model='item.minimum_price' class='form-control' />
                                     <small class='form-text text-muted'>$label6</small>
+                                </div>
+
+                                <div class='form-group form-check'>
+                                    <input :id='$id + item.id + \"quantities\"' v-model='item.allow_quantities' type='checkbox' class='form-check-input' />
+                                    <label class='form-check-label' :for='$id + item.id + \"quantities\"'>$label7</label>
+                                </div>
+
+                                <div class='form-group form-check'>
+                                    <input :id='$id + item.id + \"required\"' v-model='item.required' type='checkbox' class='form-check-input' />
+                                    <label class='form-check-label' :for='$id + item.id + \"required\"'>$label8</label>
                                 </div>
 
                                 <div class='form-group'>
@@ -2208,15 +2273,16 @@ class WPInv_Payment_Form_Elements {
 
         $options    = array();
         foreach ( $items as $item ) {
-            $title         = esc_html( $item->post_title );
-            $title        .= wpinv_get_item_suffix( $item->ID, false );
-            $id            = absint( $item->ID );
-            $price         = wpinv_sanitize_amount( get_post_meta( $id, '_wpinv_price', true ) );
-            $recurring     = (bool) get_post_meta( $id, '_wpinv_is_recurring', true );
-            $description   = $item->post_excerpt;
-            $custom_price  = (bool) get_post_meta( $id, '_wpinv_dynamic_pricing', true );
-            $minimum_price = (float) get_post_meta( $id, '_minimum_price', true );
-            $options[]     = compact( 'title', 'id', 'price', 'recurring', 'description', 'custom_price', 'minimum_price' );
+            $title            = esc_html( $item->post_title );
+            $title           .= wpinv_get_item_suffix( $item->ID, false );
+            $id               = absint( $item->ID );
+            $price            = wpinv_sanitize_amount( get_post_meta( $id, '_wpinv_price', true ) );
+            $recurring        = (bool) get_post_meta( $id, '_wpinv_is_recurring', true );
+            $description      = $item->post_excerpt;
+            $custom_price     = (bool) get_post_meta( $id, '_wpinv_dynamic_pricing', true );
+            $minimum_price    = (float) get_post_meta( $id, '_minimum_price', true );
+            $allow_quantities = false;
+            $options[]        = compact( 'title', 'id', 'price', 'recurring', 'description', 'custom_price', 'minimum_price', 'allow_quantities' );
 
         }
         return $options;

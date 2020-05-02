@@ -1020,7 +1020,7 @@ function wpinv_display_line_items( $invoice_id = 0 ) {
     $ajax_cart_details  = $cart_details;
     ob_start();
     ?>
-    <table class="table table-sm table-bordered table-responsive">
+    <table class="table table-sm table-bordered">
         <thead>
             <tr>
                 <th class="name"><strong><?php _e( "Item Name", "invoicing" );?></strong></th>
@@ -2206,6 +2206,7 @@ function wpinv_force_company_name_field(){
                 'value' => $company,
                 'class' => 'wpi-input form-control',
                 'placeholder' => __('Company name', 'invoicing'),
+                'required'      => true,
             ));
             ?>
         </p>
