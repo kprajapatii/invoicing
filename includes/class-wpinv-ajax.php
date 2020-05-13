@@ -737,6 +737,7 @@ class WPInv_Ajax {
         // ... and form items.
         $items          = $invoicing->form_elements->get_form_items( $data['form_id'] );
         $prepared_items = array();
+        $address_fields = array();
 
         if ( ! empty( $data['wpinv-items'] ) ) {
 
@@ -812,7 +813,26 @@ class WPInv_Ajax {
                 wp_send_json_error( __( 'Some required fields have not been filled.', 'invoicing' ) );
             }
 
-            if ( isset( $data[ $field['id'] ] ) ) {
+            if ( $field['type'] == 'address' ) {
+
+                foreach ( $field['fields'] as $address_field ) {
+
+                    if ( empty( $address_field['visible'] ) ) {
+                        continue;
+                    }
+
+                    if ( ! empty( $address_field['required'] ) && empty( $data[ $address_field['name'] ] ) ) {
+                        wp_send_json_error( __( 'Some required fields have not been filled.', 'invoicing' ) );
+                    }
+
+                    if ( isset( $data[ $address_field['name'] ] ) ) {
+                        $label = str_replace( 'wpinv_', '', $address_field['name'] );
+                        $address_fields[ $label ] = wpinv_clean( $data[ $address_field['name'] ] );
+                    }
+
+                }
+
+            } else if ( isset( $data[ $field['id'] ] ) ) {
                 $label = $field['id'];
 
                 if ( isset( $field['label'] ) ) {
@@ -823,7 +843,7 @@ class WPInv_Ajax {
             }
 
         }
-        
+
         $user = get_user_by( 'email', $prepared['billing_email'] );
 
         if ( empty( $user ) ) {
@@ -841,10 +861,11 @@ class WPInv_Ajax {
         // Create the invoice.
         $created = wpinv_insert_invoice(
             array(
-                'status'        =>  'wpi-pending',
-                'created_via'   =>  'wpi',
-                'user_id'       =>  $user->ID,
-                'cart_details'  =>  $prepared_items,
+                'status'        => 'wpi-pending',
+                'created_via'   => 'wpi',
+                'user_id'       => $user->ID,
+                'cart_details'  => $prepared_items,
+                'user_info'     => $address_fields,
             ),
             true
         );
@@ -866,20 +887,24 @@ class WPInv_Ajax {
                 wpinv_get_cart_total( $created->get_cart_details(), NULL, $created ) ),
                 $created->get_currency()
         );
-        ob_start();
-            $form_action  = esc_url( wpinv_get_checkout_uri() );
-            echo '<form id="wpinv_checkout_form" action="' . $form_action . '" method="POST" class="wpi-form wpi-payment-form-checkout-form mt-4">';
-            
-                echo wpinv_display_line_items( $created->ID );
 
-                echo "<div class='mt-4'>";
-                    do_action( 'wpinv_payment_mode_select' );
-                    do_action( 'wpinv_checkout_form_bottom' );
-                echo "</div>";
+        $data                   = array();
+        $data['invoice_id']     = $created->ID;
+        $data['cart_discounts'] = $created->get_discounts( true );
 
-            echo "</form>";
-        wp_send_json_success( ob_get_clean() );
+        wpinv_set_checkout_session( $data );
+        add_filter( 'wp_redirect', array( $invoicing->form_elements, 'send_redirect_response' ) );
+        add_action( 'wpinv_pre_send_back_to_checkout', array( $invoicing->form_elements, 'checkout_error' ) );
+        
+        if ( ! defined( 'WPINV_CHECKOUT' ) ) {
+            define( 'WPINV_CHECKOUT', true );
+        }
 
+        wpinv_process_checkout();
+
+        $invoicing->form_elements->checkout_error();
+
+        exit;
     }
 
     /**

@@ -361,10 +361,18 @@ jQuery(function($) {
 
     })
 
+    window.wpinvPaymentFormSubmt = true
+    window.wpinvPaymentFormDelaySubmit = false
+    window.wpinvPaymentFormData = ''
     $( document ).on( 'submit', '.wpinv_payment_form', function( e ) {
-        
+
         // Do not submit the form.
         e.preventDefault();
+
+        // Set defaults
+        wpinvPaymentFormSubmt = true
+        wpinvPaymentFormDelaySubmit = false
+        wpinvPaymentFormData = ''
 
         // instead, display a loading indicator.
         var form = $( this )
@@ -376,26 +384,117 @@ jQuery(function($) {
 
         // And submit the form to create an invoice.
         var data = form.serialize();
+        wpinvPaymentFormData = data
 
-        $.post( WPInv.ajax_url, data + '&action=wpinv_payment_form', function(res) {
-            
-            if ( res.success ) {
-                form.unblock();
-                form.parent().html( res.data )
-                WPInv_Checkout.init();
-            } else {
-                errors_el.text(res.data).removeClass('d-none')
-            }
-        })
+        $( 'body' ).trigger( 'wpinv_payment_form_before_submit', form );
 
-        .fail( function( res ) {
-            errors_el.html('Could not establish a connection to the server.').removeClass('d-none')
-        } )
-
-        .always(() => {
+        if ( ! window.wpinvPaymentFormSubmt ) {
             form.unblock();
-        })
-        
+            return;
+        }
+
+        var submit = function () {
+            return $.post(WPInv.ajax_url, wpinvPaymentFormData + '&action=wpinv_payment_form', function (res) {
+
+                if ('string' == typeof res) {
+                    errors_el.html(res).removeClass('d-none')
+                    form.unblock();
+                    return
+                }
+
+                if (res.success) {
+                    window.location.href = decodeURIComponent(res.data)
+                    return
+                }
+
+                errors_el.html(res.data).removeClass('d-none')
+                form.unblock();
+
+            })
+
+                .fail(function (res) {
+                    errors_el.html('Could not establish a connection to the server.').removeClass('d-none')
+                    form.unblock();
+                })
+
+        }
+
+        if ( wpinvPaymentFormDelaySubmit ) {
+            var local_submit = function() {
+
+                if ( ! window.wpinvPaymentFormSubmt ) {
+                    form.unblock();
+                } else {
+                    submit()
+                }
+
+                $('body').unbind( 'wpinv_payment_form_delayed_submit', local_submit )
+
+            }
+            $('body').bind( 'wpinv_payment_form_delayed_submit', local_submit )
+
+        } else {
+            submit()
+        }
+
     })
+
+    $('.wpinv_payment_form').on('click', 'input[name="wpi-gateway"]', function ( e ) {
+
+        var form = $( this ).closest( '.wpinv_payment_form' );
+        var is_checked = $(this).is(':checked')
+
+        if ($('.wpi-payment_methods input.wpi-pmethod').length > 1) {
+
+            var target_payment_box = form.find('div.payment_box.' + $(this).attr('ID'));
+            if ( is_checked && !target_payment_box.is(':visible') ) {
+
+                // Hide all visible payment methods.
+                form.find('div.payment_box').filter(':visible').slideUp(250);
+                if ($(this).is(':checked')) {
+                    var content = $('div.payment_box.' + $(this).attr('ID')).html();
+                    content = content ? content.trim() : '';
+                    if (content) {
+                        $('div.payment_box.' + $(this).attr('ID')).slideDown(250);
+                    }
+                }
+            }
+
+        } else {
+
+            $('div.payment_box').show();
+
+        }
+        $('#wpinv_payment_mode_select').attr('data-gateway', $(this).val());
+        wpinvSetPaymentBtnText($(this), $('#wpinv_payment_mode_select').data('free'));
+    });
+
+    $('.wpinv_payment_form').find('.payment_box .form-horizontal .form-group').addClass('row')
+
+    $('.wpinv_payment_form').each( function() {
+
+        var $checkout_form = $( this );
+        var $payment_methods = $checkout_form.find('.wpi-payment_methods input[name="wpi-gateway"]');
+
+        // If there is one method, we can hide the radio input and the title.
+        if (1 === $payment_methods.length) {
+            $payment_methods.eq(0).hide();
+            $checkout_form.find('.wpi-payment_methods_title').hide()
+        }
+
+        if ( $payment_methods.length === 0) {
+            $checkout_form.find('.wpi-payment_methods_title').hide()
+            $checkout_form.find('.wpinv-payment-form-submit').prop( 'disabled', true ).css('cursor', 'not-allowed');
+        }
+
+        // If there are none selected, select the first.
+        if (0 === $payment_methods.filter(':checked').length) {
+            $payment_methods.eq(0).prop('checked', true);
+        }
+
+        // Trigger click event for selected method
+        $payment_methods.filter(':checked').eq(0).trigger('click');
+
+    } )
 
 });
