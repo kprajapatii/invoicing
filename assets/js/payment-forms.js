@@ -4,6 +4,12 @@ jQuery(function($) {
     $( 'body').on( 'input', '.wpinv-item-price-input', function( e ) {
 
         var form  = $( this ).closest('.wpinv_payment_form')
+
+        // Taxes.
+        if ( form.find('.wpinv-items-tax').length ) {
+            return;
+        }
+
         var total = 0.0
 
         // Calculate the total of all items.
@@ -46,6 +52,12 @@ jQuery(function($) {
     $( 'body').on( 'input', '.wpinv-item-quantity-input', function( e ) {
 
         var form  = $( this ).closest('.wpinv_payment_form')
+
+        // Taxes.
+        if ( form.find('.wpinv-items-tax').length ) {
+            return;
+        }
+
         var total = 0.0
 
         // Calculate the total of all items.
@@ -84,7 +96,7 @@ jQuery(function($) {
 
     })
 
-    $( 'body').on( 'input', '.wpinv-items-selector', function( e ) {
+    $( '.wpinv_payment_form .wpinv-items-selector').on( 'input', function( e ) {
 
         var form  = $( this ).closest('.wpinv_payment_form')
         var total = 0.0
@@ -104,6 +116,11 @@ jQuery(function($) {
             .find('input:not(.wpinv-item-quantity-input)')
             .attr('name', 'wpinv-items[' + val + ']')
 
+        // Taxes.
+        if ( form.find('.wpinv-items-tax').length ) {
+            return;
+        }
+
         // Calculate the total of all items.
         form.find( '.wpinv-item-price-input' ).each( function() {
 
@@ -141,7 +158,7 @@ jQuery(function($) {
 
     })
 
-    $( 'body').on( 'change', '.wpinv-items-select-selector', function( e ) {
+    $( '.wpinv_payment_form .wpinv-items-select-selector').on( 'change', function( e ) {
 
         var form  = $( this ).closest('.wpinv_payment_form')
         var total = 0.0
@@ -161,6 +178,11 @@ jQuery(function($) {
             .find('input:not(.wpinv-item-quantity-input)')
             .attr('name', 'wpinv-items[' + val + ']')
 
+        // Taxes.
+        if ( form.find('.wpinv-items-tax').length ) {
+            return;
+        }
+
         // Calculate the total of all items.
         form.find( '.wpinv-item-price-input' ).each( function() {
 
@@ -198,7 +220,7 @@ jQuery(function($) {
 
     })
 
-    $( 'body').on( 'change', '.wpinv-items-multiselect-selector', function( e ) {
+    $( '.wpinv_payment_form .wpinv-items-multiselect-selector').on( 'change', function( e ) {
 
         var form  = $( this ).closest('.wpinv_payment_form')
         var total = 0.0
@@ -225,6 +247,11 @@ jQuery(function($) {
             })
         }
 
+        // Taxes.
+        if ( form.find('.wpinv-items-tax').length ) {
+            return;
+        }
+
         // Calculate the total of all items.
         form.find( '.wpinv-item-price-input' ).each( function() {
 
@@ -262,7 +289,7 @@ jQuery(function($) {
 
     })
 
-    $( 'body').on( 'change', '.wpi-payment-form-items-select-checkbox', function( e ) {
+    $( '.wpi-payment-form-items-select-checkbox').on( 'change', function( e ) {
 
         var form  = $( this ).closest('.wpinv_payment_form')
         var total = 0.0
@@ -285,7 +312,10 @@ jQuery(function($) {
                 .attr('name', 'wpinv-items[' + val + ']')
         });
 
-        
+        // Taxes.
+        if ( form.find('.wpinv-items-tax').length ) {
+            return;
+        }
 
         // Calculate the total of all items.
         form.find( '.wpinv-item-price-input' ).each( function() {
@@ -471,6 +501,44 @@ jQuery(function($) {
 
     $('.wpinv_payment_form').find('.payment_box .form-horizontal .form-group').addClass('row')
 
+    // Ensures that taxes on the form are in sync.
+    var wpinvPaymentFormUpdateTaxes = function( form ) {
+
+        var syncTaxes = function() {
+
+            var totals = $( form ).find('.item_totals')
+            wpinvBlock( totals );
+    
+            var data = $( form ).serialize();
+
+            $.post(WPInv.ajax_url, data + '&action=wpinv_payment_form_get_taxes', function (res) {
+
+                if ( 'object' == typeof res ) {
+                    $( form ).find('.wpinv-items-total').html( res.data.total )
+                    $( form ).find('.wpinv-items-tax').html( res.data.tax )
+                    $( form ).find('.wpinv-items-sub-total').html( res.data.sub_total )
+                }
+
+            })
+
+            .always(function () {
+                totals.unblock();
+            })
+
+        }
+
+        syncTaxes();
+        $( form ).on( 'change', '.wpinv-item-quantity-input', syncTaxes )
+        $( form ).on( 'change', '.wpinv-item-price-input', syncTaxes )
+        $( form ).on( 'change', '.wpinv-items-selector', syncTaxes )
+        $( form ).on( 'change', '.wpi-payment-form-items-select-checkbox', syncTaxes )
+        $( form ).on( 'change', '.wpinv-items-select-selector', syncTaxes )
+        $( form ).on( 'change', '.wpinv-items-multiselect-selector', syncTaxes )
+        $( form ).on( 'change', '#wpinv_country', syncTaxes )
+        $( form ).on( 'change', '#wpinv_state', syncTaxes )
+
+    }
+
     $('.wpinv_payment_form').each( function() {
 
         var $checkout_form = $( this );
@@ -494,6 +562,40 @@ jQuery(function($) {
 
         // Trigger click event for selected method
         $payment_methods.filter(':checked').eq(0).trigger('click');
+
+        // Taxes.
+        if ( $checkout_form.find('.wpinv-items-tax').length ) {
+            wpinvPaymentFormUpdateTaxes( $checkout_form )
+        }
+
+        // States.
+        if ( $checkout_form.find('#wpinv_state').length ) {
+
+            $checkout_form.on( 'change', '#wpinv_country', function() {
+
+                wpinvBlock( $checkout_form.find('.wpinv_state') );
+
+                data = {
+                    action: 'wpinv_get_payment_form_states_field',
+                    country: $(this).val(),
+                    form: $checkout_form.find('input[name="form_id"]').val()
+                };
+
+                $.get(ajaxurl, data, function( res ) {
+
+                    if ( 'object' == typeof res ) {    
+                        $checkout_form.find('.wpinv_state').html( res.data )
+                    }
+
+                })
+
+                .always( function(data) {
+                    $checkout_form.find('.wpinv_state').unblock()
+                });
+
+            })
+
+        }
 
     } )
 

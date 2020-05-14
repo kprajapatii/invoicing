@@ -645,7 +645,7 @@ class WPInv_EUVat {
     // Find country by IP address.
     public static function get_country_by_ip( $ip = '' ) {
         global $wpinv_ip_address_country;
-        
+        return '';
         if ( !empty( $wpinv_ip_address_country ) ) {
             return $wpinv_ip_address_country;
         }
@@ -1163,7 +1163,7 @@ class WPInv_EUVat {
         
         return $return;
     }
-    
+
     public static function request_euvatrates( $group ) {
         $response               = array();
         $response['success']    = false;
@@ -1173,13 +1173,12 @@ class WPInv_EUVat {
         $euvatrates_url = 'https://euvatrates.com/rates.json';
         $euvatrates_url = apply_filters( 'wpinv_euvatrates_url', $euvatrates_url );
         $api_response   = wp_remote_get( $euvatrates_url );
-    
+
         try {
             if ( is_wp_error( $api_response ) ) {
                 $response['error']      = __( $api_response->get_error_message(), 'invoicing' );
             } else {
                 $body = json_decode( $api_response['body'] );
-                
                 if ( isset( $body->rates ) ) {
                     $rates = array();
                     
@@ -1803,14 +1802,14 @@ class WPInv_EUVat {
     
     public static function checkout_vat_validate( $valid_data, $post ) {
         global $wpinv_options, $wpi_session;
-        
+
         $vat_name  = __( self::get_vat_name(), 'invoicing' );
-        
+
         if ( !isset( $_POST['_wpi_nonce'] ) || !wp_verify_nonce( $_POST['_wpi_nonce'], 'vat_validation' ) ) {
             wpinv_set_error( 'vat_validation', wp_sprintf( __( "Invalid %s validation request.", 'invoicing' ), $vat_name ) );
             return;
         }
-        
+
         $vat_saved = $wpi_session->get( 'user_vat_data' );
         $wpi_session->set( 'user_vat_data', null );
         
@@ -1836,7 +1835,7 @@ class WPInv_EUVat {
         $is_eu_state        = self::is_eu_state( $country );
         $is_eu_state_ip     = self::is_eu_state( $ip_country_code );
         $is_non_eu_user     = !$is_eu_state && !$is_eu_state_ip;
-        
+
         if ( $is_digital && !$is_non_eu_user && empty( $vat_number ) && apply_filters( 'wpinv_checkout_requires_country', true, $amount ) ) {
             $vat_data['adddress_confirmed'] = false;
             
@@ -1848,7 +1847,7 @@ class WPInv_EUVat {
                 $vat_data['adddress_confirmed'] = true;
             }
         }
-        
+
         if ( !empty( $wpinv_options['vat_prevent_b2c_purchase'] ) && !$is_non_eu_user && ( empty( $vat_number ) || $no_vat ) ) {
             if ( $is_eu_state ) {
                 wpinv_set_error( 'vat_validation', wp_sprintf( __( 'Please enter and validate your %s number to verify your purchase is by an EU business.', 'invoicing' ), $vat_name ) );
@@ -1856,7 +1855,7 @@ class WPInv_EUVat {
                 wpinv_set_error( 'vat_validation', wp_sprintf( __( 'Sales to non-EU countries cannot be completed because %s must be applied.', 'invoicing' ), $vat_name ) );
             }
         }
-        
+
         if ( !$is_eu_state || $no_vat || empty( $vat_number ) ) {
             return;
         }

@@ -252,7 +252,7 @@ class WPInv_Payment_Form_Elements {
                         ),
 
                         array(
-                            'placeholder'  => '',
+                            'placeholder'  => __( 'Select your country' ),
                             'value'        => '',
                             'label'        => __( 'Country', 'invoicing' ),
                             'description'  => '',
@@ -876,7 +876,10 @@ class WPInv_Payment_Form_Elements {
                 <draggable v-model='$field.fields' group='address_fields_preview'>
                     <div class='form-group address-field-preview' v-for='(field, index) in $field.fields' :key='field.name' v-show='field.visible'>
                         <label :for='field.name'>{{field.label}}<span class='text-danger' v-if='field.required'> *</span></label>
-                        <input class='form-control' type='text' :id='field.name' :placeholder='field.placeholder'>
+                        <input v-if='field.name !== \"wpinv_country\" && field.name !== \"wpinv_state\"' class='form-control' type='text' :id='field.name' :placeholder='field.placeholder'>
+                        <select v-else class='form-control' :id='field.name'>
+                            <option v-if='field.placeholder'>{{field.placeholder}}</option>
+                        </select>
                         <small v-if='field.description' class='form-text text-muted' v-html='field.description'></small>
                     </div>
                 </draggable>
@@ -905,17 +908,71 @@ class WPInv_Payment_Form_Elements {
             if ( ! empty( $address_field['required'] ) ) {
                 $label .= "<span class='text-danger'> *</span>";
             }
-            echo aui()->input(
-                array(
-                    'name'       => esc_attr( $address_field['name'] ),
-                    'id'         => esc_attr( $address_field['name'] ),
-                    'required'   => (bool) $address_field['required'],
-                    'label'      => wp_kses_post( $label ),
-                    'no_wrap'    => true,
-                    'placeholder' => esc_attr( $address_field['placeholder'] ),
-                    'type'       => 'text',
-                )
-            );
+
+            if ( 'wpinv_country' == $address_field['name'] ) {
+
+                echo aui()->select( array(
+                    'options'          => wpinv_get_country_list(),
+                    'name'             => esc_attr( $address_field['name'] ),
+                    'id'               => esc_attr( $address_field['name'] ),
+                    'value'            => wpinv_get_default_country(),
+                    'placeholder'      => esc_attr( $address_field['placeholder'] ),
+                    'required'         => (bool) $address_field['required'],
+                    'no_wrap'          => true,
+                    'label'            => wp_kses_post( $label ),
+                    'select2'          => false,
+                ));
+    
+            } else if ( 'wpinv_state' == $address_field['name'] ) {
+
+                $states = wpinv_get_country_states( wpinv_get_default_country() );
+                $state  = wpinv_get_default_state();
+
+                if ( ! empty( $states ) ) {
+
+                    echo aui()->select( array(
+                        'options'          => $states,
+                        'name'             => esc_attr( $address_field['name'] ),
+                        'id'               => esc_attr( $address_field['name'] ),
+                        'value'            => $state,
+                        'placeholder'      => esc_attr( $address_field['placeholder'] ),
+                        'required'         => (bool) $address_field['required'],
+                        'no_wrap'          => true,
+                        'label'            => wp_kses_post( $label ),
+                        'select2'          => false,
+                    ));
+
+                } else {
+
+                    echo aui()->input(
+                        array(
+                            'name'       => esc_attr( $address_field['name'] ),
+                            'id'         => esc_attr( $address_field['name'] ),
+                            'required'   => (bool) $address_field['required'],
+                            'label'      => wp_kses_post( $label ),
+                            'no_wrap'    => true,
+                            'type'       => 'text',
+                        )
+                    );
+
+                }
+
+            } else {
+
+                echo aui()->input(
+                    array(
+                        'name'       => esc_attr( $address_field['name'] ),
+                        'id'         => esc_attr( $address_field['name'] ),
+                        'required'   => (bool) $address_field['required'],
+                        'label'      => wp_kses_post( $label ),
+                        'no_wrap'    => true,
+                        'placeholder' => esc_attr( $address_field['placeholder'] ),
+                        'type'       => 'text',
+                    )
+                );
+
+            }
+            
 
             if ( ! empty( $address_field['description'] ) ) {
                 $description = wp_kses_post( $address_field['description'] );
@@ -1762,14 +1819,37 @@ class WPInv_Payment_Form_Elements {
         
         $id = esc_attr( $field['id'] );
         if ( 'total' == $field[ 'items_type' ] ) {
-            $total = 0;
+            $total     = 0;
+            $tax       = 0;
+            $sub_total = 0;
 
             ?>
             <div class="border item_totals_type_total">
 
                 <?php
                     foreach( $items as $item ) {
-                        $total = $total + floatval( $item['price'] );
+
+                        $amount = floatval( $item['price'] );
+
+                        if ( wpinv_use_taxes() ) {
+
+                            $rate = wpinv_get_tax_rate( wpinv_get_default_country(), false, (int) $item['id'] );
+
+                            if ( wpinv_prices_include_tax() ) {
+                                $pre_tax  = ( $amount - $amount * $rate * 0.01 );
+                                $item_tax = $amount - $pre_tax;
+                            } else {
+                                $pre_tax  = $amount;
+                                $item_tax = $amount * $rate * 0.01;
+                            }
+
+                            $tax       = $tax + $item_tax;
+                            $sub_total = $sub_total + $pre_tax;
+                            $total     = $sub_total + $tax;
+
+                        } else {
+                            $total  = $total + $amount;
+                        }
 
                         $class  = 'col-8';
                         $class2 = '';
@@ -1833,11 +1913,24 @@ class WPInv_Payment_Form_Elements {
                     </div>
                 <?php } ?>
 
-                <div class='mt-4 border-top item_totals_total'>
-                    <div class='row p-2'>
+                <div class='mt-4 border-top item_totals_total p-2'>
+
+                    <?php if ( wpinv_use_taxes() ) { ?>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Sub Total', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-sub-total'><?php echo wpinv_price( wpinv_format_amount( $sub_total ) ) ?></strong></div>
+                        </div>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Tax', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-tax' ><?php echo wpinv_price( wpinv_format_amount( $tax ) ) ?></strong></div>
+                        </div>
+                    <?php } ?>
+
+                    <div class='row'>
                         <div class='col-8'><strong class='mr-5'><?php _e( 'Total', 'invoicing' ); ?></strong></div>
                         <div class='col-4'><strong class='wpinv-items-total' data-currency='<?php echo wpinv_currency_symbol(); ?>' data-currency-position='<?php echo wpinv_currency_position(); ?>'><?php echo wpinv_price( wpinv_format_amount( $total ) ) ?></strong></div>
                     </div>
+
                 </div>
 
             </div>
@@ -1848,7 +1941,7 @@ class WPInv_Payment_Form_Elements {
 
                 <?php
                     foreach( $items as $index => $item ) {
-                
+
                         if ( ! empty( $item['required'] ) ) {
                             continue;
                         }
@@ -1866,7 +1959,9 @@ class WPInv_Payment_Form_Elements {
 
                     <?php
 
-                        $total = 0;
+                        $total     = 0;
+                        $tax       = 0;
+                        $sub_total = 0;
 
                         foreach ( $items as $item ) {
 
@@ -1886,7 +1981,28 @@ class WPInv_Payment_Form_Elements {
                             $name   = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_radio_item ) ) {
 
-                                $total = $total + floatval( $item['price'] );
+                                $amount = floatval( $item['price'] );
+
+                                if ( wpinv_use_taxes() ) {
+
+                                    $rate = wpinv_get_tax_rate( wpinv_get_default_country(), false, (int) $item['id'] );
+
+                                    if ( wpinv_prices_include_tax() ) {
+                                        $pre_tax  = ( $amount - $amount * $rate * 0.01 );
+                                        $item_tax = $amount - $pre_tax;
+                                    } else {
+                                        $pre_tax  = $amount;
+                                        $item_tax = $amount * $rate * 0.01;
+                                    }
+
+                                    $tax       = $tax + $item_tax;
+                                    $sub_total = $sub_total + $pre_tax;
+                                    $total     = $sub_total + $tax;
+
+                                } else {
+                                    $total  = $total + $amount;
+                                }
+
                                 $class3 = '';
                                 $name   = "wpinv-items[{$item['id']}]";
 
@@ -1949,8 +2065,19 @@ class WPInv_Payment_Form_Elements {
                     </div>
                 <?php } ?>
 
-                <div class='mt-4 border-top item_totals_total'>
-                    <div class='row p-2'>
+                <div class='mt-4 border-top item_totals_total p-2'>
+                    <?php if ( wpinv_use_taxes() ) { ?>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Sub Total', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-sub-total'><?php echo wpinv_price( wpinv_format_amount( $sub_total ) ) ?></strong></div>
+                        </div>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Tax', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-tax' ><?php echo wpinv_price( wpinv_format_amount( $tax ) ) ?></strong></div>
+                        </div>
+                    <?php } ?>
+
+                    <div class='row'>
                         <div class='col-8'><strong class='mr-5'><?php _e( 'Total', 'invoicing' ); ?></strong></div>
                         <div class='col-4'><strong class='wpinv-items-total' data-currency='<?php echo wpinv_currency_symbol(); ?>' data-currency-position='<?php echo wpinv_currency_position(); ?>'><?php echo wpinv_price( wpinv_format_amount( $total ) ) ?></strong></div>
                     </div>
@@ -1994,7 +2121,9 @@ class WPInv_Payment_Form_Elements {
 
                     <?php
 
-                        $total = 0;
+                        $total     = 0;
+                        $tax       = 0;
+                        $sub_total = 0;
 
                         foreach ( $items as $item ) {
 
@@ -2014,7 +2143,27 @@ class WPInv_Payment_Form_Elements {
                             $name  = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_checkbox_item ) ) {
 
-                                $total = $total + floatval( $item['price'] );
+                                $amount = floatval( $item['price'] );
+                                if ( wpinv_use_taxes() ) {
+
+                                    $rate = wpinv_get_tax_rate( wpinv_get_default_country(), false, (int) $item['id'] );
+
+                                    if ( wpinv_prices_include_tax() ) {
+                                        $pre_tax  = ( $amount - $amount * $rate * 0.01 );
+                                        $item_tax = $amount - $pre_tax;
+                                    } else {
+                                        $pre_tax  = $amount;
+                                        $item_tax = $amount * $rate * 0.01;
+                                    }
+
+                                    $tax       = $tax + $item_tax;
+                                    $sub_total = $sub_total + $pre_tax;
+                                    $total     = $sub_total + $tax;
+
+                                } else {
+                                    $total  = $total + $amount;
+                                }
+
                                 $class3 = '';
                                 $name  = "wpinv-items[{$item['id']}]";
 
@@ -2077,8 +2226,20 @@ class WPInv_Payment_Form_Elements {
                     </div>
                 <?php } ?>
 
-                <div class='mt-4 border-top item_totals_total'>
-                    <div class='row p-2'>
+                <div class='mt-4 border-top item_totals_total p-2'>
+
+                    <?php if ( wpinv_use_taxes() ) { ?>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Sub Total', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-sub-total'><?php echo wpinv_price( wpinv_format_amount( $sub_total ) ) ?></strong></div>
+                        </div>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Tax', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-tax' ><?php echo wpinv_price( wpinv_format_amount( $tax ) ) ?></strong></div>
+                        </div>
+                    <?php } ?>
+
+                    <div class='row'>
                         <div class='col-8'><strong class='mr-5'><?php _e( 'Total', 'invoicing' ); ?></strong></div>
                         <div class='col-4'><strong class='wpinv-items-total' data-currency='<?php echo wpinv_currency_symbol(); ?>' data-currency-position='<?php echo wpinv_currency_position(); ?>'><?php echo wpinv_price( wpinv_format_amount( $total ) ) ?></strong></div>
                     </div>
@@ -2129,7 +2290,9 @@ class WPInv_Payment_Form_Elements {
 
                     <?php
 
-                        $total = 0;
+                        $total     = 0;
+                        $tax       = 0;
+                        $sub_total = 0;
 
                         foreach ( $items as $item ) {
 
@@ -2149,7 +2312,27 @@ class WPInv_Payment_Form_Elements {
                             $name  = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_select_item ) ) {
 
-                                $total = $total + floatval( $item['price'] );
+                                $amount = floatval( $item['price'] );
+                                if ( wpinv_use_taxes() ) {
+
+                                    $rate = wpinv_get_tax_rate( wpinv_get_default_country(), false, (int) $item['id'] );
+
+                                    if ( wpinv_prices_include_tax() ) {
+                                        $pre_tax  = ( $amount - $amount * $rate * 0.01 );
+                                        $item_tax = $amount - $pre_tax;
+                                    } else {
+                                        $pre_tax  = $amount;
+                                        $item_tax = $amount * $rate * 0.01;
+                                    }
+
+                                    $tax       = $tax + $item_tax;
+                                    $sub_total = $sub_total + $pre_tax;
+                                    $total     = $sub_total + $tax;
+
+                                } else {
+                                    $total  = $total + $amount;
+                                }
+
                                 $class3 = '';
                                 $name  = "wpinv-items[{$item['id']}]";
 
@@ -2212,8 +2395,19 @@ class WPInv_Payment_Form_Elements {
                     </div>
                 <?php } ?>
 
-                <div class='mt-4 border-top item_totals_total'>
-                    <div class='row p-2'>
+                <div class='mt-4 border-top item_totals_total p-2'>
+
+                    <?php if ( wpinv_use_taxes() ) { ?>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Sub Total', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-sub-total'><?php echo wpinv_price( wpinv_format_amount( $sub_total ) ) ?></strong></div>
+                        </div>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Tax', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-tax' ><?php echo wpinv_price( wpinv_format_amount( $tax ) ) ?></strong></div>
+                        </div>
+                    <?php } ?>
+                    <div class='row'>
                         <div class='col-8'><strong class='mr-5'><?php _e( 'Total', 'invoicing' ); ?></strong></div>
                         <div class='col-4'><strong class='wpinv-items-total' data-currency='<?php echo wpinv_currency_symbol(); ?>' data-currency-position='<?php echo wpinv_currency_position(); ?>'><?php echo wpinv_price( wpinv_format_amount( $total ) ) ?></strong></div>
                     </div>
@@ -2236,7 +2430,7 @@ class WPInv_Payment_Form_Elements {
                         if ( ! empty( $item['required'] ) ) {
                             continue;
                         }
-                    
+
                         $title = sanitize_text_field(  $item['title'] );
                         $price = wpinv_price( wpinv_format_amount( (float) sanitize_text_field(  $item['price'] ) ) );
                         $options[ $item['id'] ] = "$title &nbsp; ($price)";
@@ -2265,7 +2459,9 @@ class WPInv_Payment_Form_Elements {
 
                     <?php
 
-                        $total = 0;
+                        $total     = 0;
+                        $tax       = 0;
+                        $sub_total = 0;
 
                         foreach ( $items as $item ) {
 
@@ -2285,7 +2481,27 @@ class WPInv_Payment_Form_Elements {
                             $name  = '';
                             if ( ! empty( $item['required'] ) || ! isset( $totals_selected_select_item ) ) {
 
-                                $total = $total + floatval( $item['price'] );
+                                $amount = floatval( $item['price'] );
+                                if ( wpinv_use_taxes() ) {
+
+                                    $rate = wpinv_get_tax_rate( wpinv_get_default_country(), false, (int) $item['id'] );
+
+                                    if ( wpinv_prices_include_tax() ) {
+                                        $pre_tax  = ( $amount - $amount * $rate * 0.01 );
+                                        $item_tax = $amount - $pre_tax;
+                                    } else {
+                                        $pre_tax  = $amount;
+                                        $item_tax = $amount * $rate * 0.01;
+                                    }
+
+                                    $tax       = $tax + $item_tax;
+                                    $sub_total = $sub_total + $pre_tax;
+                                    $total     = $sub_total + $tax;
+
+                                } else {
+                                    $total  = $total + $amount;
+                                }
+
                                 $class3 = '';
                                 $name  = "wpinv-items[{$item['id']}]";
 
@@ -2348,8 +2564,20 @@ class WPInv_Payment_Form_Elements {
                     </div>
                 <?php } ?>
 
-                <div class='mt-4 border-top item_totals_total'>
-                    <div class='row p-2'>
+                <div class='mt-4 border-top item_totals_total p-2'>
+
+                    <?php if ( wpinv_use_taxes() ) { ?>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Sub Total', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-sub-total'><?php echo wpinv_price( wpinv_format_amount( $sub_total ) ) ?></strong></div>
+                        </div>
+                        <div class='row'>
+                            <div class='col-8'><strong class='mr-5'><?php _e( 'Tax', 'invoicing' ); ?></strong></div>
+                            <div class='col-4'><strong class='wpinv-items-tax' ><?php echo wpinv_price( wpinv_format_amount( $tax ) ) ?></strong></div>
+                        </div>
+                    <?php } ?>
+
+                    <div class='row'>
                         <div class='col-8'><strong class='mr-5'><?php _e( 'Total', 'invoicing' ); ?></strong></div>
                         <div class='col-4'><strong class='wpinv-items-total' data-currency='<?php echo wpinv_currency_symbol(); ?>' data-currency-position='<?php echo wpinv_currency_position(); ?>'><?php echo wpinv_price( wpinv_format_amount( $total ) ) ?></strong></div>
                     </div>
