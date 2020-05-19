@@ -149,7 +149,6 @@ class WPInv_Payment_Form_Elements {
                 'type' => 'date',
                 'name' => __( 'Date', 'invoicing' ),
                 'defaults' => array(
-                    'placeholder'  => '',
                     'value'        => '',
                     'label'        => __( 'Date', 'invoicing' ),
                     'description'  => '',
@@ -161,7 +160,6 @@ class WPInv_Payment_Form_Elements {
                 'type' => 'time',
                 'name' => __( 'Time', 'invoicing' ),
                 'defaults' => array(
-                    'placeholder'  => '',
                     'value'        => '',
                     'label'        => __( 'Time', 'invoicing' ),
                     'description'  => '',
@@ -445,7 +443,8 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'text' );
         $label    = "$field.label";
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$field.id'>{{" . $label . "}}</label>
                 <input  :placeholder='$field.placeholder' :id='$field.id' class='form-control' type='text'>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -524,7 +523,8 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'textarea' );
         $label    = "$field.label";
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$field.id'>{{" . $label . "}}</label>
                 <textarea  :placeholder='$field.placeholder' :id='$field.id' class='form-control' rows='3'></textarea>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -606,7 +606,8 @@ class WPInv_Payment_Form_Elements {
         $placeholder = "$field.placeholder";
         $id          = $field . '.id';
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$id'>{{" . $label . "}}</label>
                 <select id='$id' class='form-control custom-select'  v-model='$field.value'>
                     <option v-if='$placeholder' value='' disabled>{{" . $placeholder . "}}</option>
@@ -702,6 +703,7 @@ class WPInv_Payment_Form_Elements {
         $label    = "$field.label";
         echo "
             <div class='form-check' $restrict>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <input  :id='$field.id' class='form-check-input' type='checkbox' />
                 <label class='form-check-label' :for='$field.id'>{{" . $label . "}}</label>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -776,7 +778,8 @@ class WPInv_Payment_Form_Elements {
         $label       = "$field.label";
         $id          = $field . '.id';
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <legend class='col-form-label' v-if='$label'>{{" . $label . "}}</legend>
                 <div class='form-check' v-for='(option, index) in $field.options'>
                     <input class='form-check-input' type='radio' :id='$id + index'>
@@ -874,7 +877,8 @@ class WPInv_Payment_Form_Elements {
         echo "
             <div class='wpinv-address-wrapper' $restrict>
                 <draggable v-model='$field.fields' group='address_fields_preview'>
-                    <div class='form-group address-field-preview' v-for='(field, index) in $field.fields' :key='field.name' v-show='field.visible'>
+                    <div class='form-group address-field-preview wpinv-payment-form-field-preview' v-for='(field, index) in $field.fields' :key='field.name' v-show='field.visible'>
+                        <div class='wpinv-payment-form-field-preview-overlay'></div>
                         <label :for='field.name'>{{field.label}}<span class='text-danger' v-if='field.required'> *</span></label>
                         <input v-if='field.name !== \"wpinv_country\" && field.name !== \"wpinv_state\"' class='form-control' type='text' :id='field.name' :placeholder='field.placeholder'>
                         <select v-else class='form-control' :id='field.name'>
@@ -1012,7 +1016,7 @@ class WPInv_Payment_Form_Elements {
 
                         <div class='wpinv-form-address-field-editor-header' @click.prevent='toggleAddressPanel($id_main, field.name)'>
                             <span class='label'>{{field.label}}</span>
-                            <span class='toggle-visibility-icon' @click.prevent='field.visible = !field.visible;'>
+                            <span class='toggle-visibility-icon' @click.stop='field.visible = !field.visible;'>
                                 <span class='dashicons dashicons-hidden'></span>
                                 <span class='dashicons dashicons-visibility'></span>
                             </span>
@@ -1068,7 +1072,8 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'email' );
         $label    = "$field.label";
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$field.id'>{{" . $label . "}}</label>
                 <input  :placeholder='$field.placeholder' :id='$field.id' class='form-control' type='email'>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -1230,7 +1235,8 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'website' );
         $label    = "$field.label";
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$field.id'>{{" . $label . "}}</label>
                 <input  :placeholder='$field.placeholder' :id='$field.id' class='form-control' type='url'>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -1310,7 +1316,8 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'date' );
         $label    = "$field.label";
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$field.id'>{{" . $label . "}}</label>
                 <input  :placeholder='$field.placeholder' :id='$field.id' class='form-control' type='date'>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -1331,7 +1338,6 @@ class WPInv_Payment_Form_Elements {
                 'id'         => esc_attr( $field['id'] ),
                 'required'   => (bool) $field['required'],
                 'label'      => wp_kses_post( $field['label'] ),
-                'placeholder' => esc_attr( $field['placeholder'] ),
                 'no_wrap'    => true,
                 'type'       => 'date',
             )
@@ -1353,8 +1359,6 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'date' );
         $label    = __( 'Field Label', 'invoicing' );
         $id       = $field . '.id + "_edit"';
-        $label2   = __( 'Placeholder text', 'invoicing' );
-        $id2      = $field . '.id + "_edit2"';
         $label3   = __( 'Help text', 'invoicing' );
         $label4   = esc_attr__( 'Add some help text for this field', 'invoicing' );
         $id3      = $field . '.id + "_edit3"';
@@ -1365,10 +1369,6 @@ class WPInv_Payment_Form_Elements {
                 <div class='form-group'>
                     <label :for='$id'>$label</label>
                     <input :id='$id' v-model='$field.label' class='form-control' />
-                </div>
-                <div class='form-group'>
-                    <label :for='$id2'>$label2</label>
-                    <input :id='$id2' v-model='$field.placeholder' class='form-control' />
                 </div>
                 <div class='form-group'>
                     <label :for='$id3'>$label3</label>
@@ -1390,7 +1390,8 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'time' );
         $label    = "$field.label";
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$field.id'>{{" . $label . "}}</label>
                 <input  :placeholder='$field.placeholder' :id='$field.id' class='form-control' type='time'>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -1412,7 +1413,6 @@ class WPInv_Payment_Form_Elements {
                 'required'   => (bool) $field['required'],
                 'label'      => wp_kses_post( $field['label'] ),
                 'no_wrap'    => true,
-                'placeholder' => esc_attr( $field['placeholder'] ),
                 'type'       => 'time',
             )
         );
@@ -1433,8 +1433,6 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'time' );
         $label    = __( 'Field Label', 'invoicing' );
         $id       = $field . '.id + "_edit"';
-        $label2   = __( 'Placeholder text', 'invoicing' );
-        $id2      = $field . '.id + "_edit2"';
         $label3   = __( 'Help text', 'invoicing' );
         $label4   = esc_attr__( 'Add some help text for this field', 'invoicing' );
         $id3      = $field . '.id + "_edit3"';
@@ -1445,10 +1443,6 @@ class WPInv_Payment_Form_Elements {
                 <div class='form-group'>
                     <label :for='$id'>$label</label>
                     <input :id='$id' v-model='$field.label' class='form-control' />
-                </div>
-                <div class='form-group'>
-                    <label :for='$id2'>$label2</label>
-                    <input :id='$id2' v-model='$field.placeholder' class='form-control' />
                 </div>
                 <div class='form-group'>
                     <label :for='$id3'>$label3</label>
@@ -1470,7 +1464,8 @@ class WPInv_Payment_Form_Elements {
         $restrict = $this->get_restrict_markup( $field, 'number' );
         $label    = "$field.label";
         echo "
-            <div $restrict>
+            <div $restrict class='wpinv-payment-form-field-preview'>
+                <div class='wpinv-payment-form-field-preview-overlay'></div>
                 <label :for='$field.id'>{{" . $label . "}}</label>
                 <input  :placeholder='$field.placeholder' :id='$field.id' class='form-control' type='number'>
                 <small v-if='$field.description' class='form-text text-muted' v-html='$field.description'></small>
@@ -1807,7 +1802,14 @@ class WPInv_Payment_Form_Elements {
     public function render_items_template( $field ) {
         $restrict  = $this->get_restrict_markup( $field, 'items' );
         $label     = __( 'Item totals will appear here. Click to set items.', 'invoicing' );
-        echo "<div $restrict class='item_totals p-4 bg-warning text-center'>$label</div>";
+        $label2    = __( 'Your form allows customers to buy several recurring items. This is not supported and will lead to unexpected behaviour.', 'invoicing' );
+        $label2   .= ' ' . __( 'To prevent this, limit customers to selecting a single item.', 'invoicing' );
+        echo "
+            <div $restrict class='item_totals text-center'>
+                <div v-if='canCheckoutSeveralSubscriptions($field)' class='p-4 bg-danger text-light'>$label2</div>
+                <div v-if='! canCheckoutSeveralSubscriptions($field)' class='p-4 bg-warning'>$label</div>
+            </div>
+        ";
     }
 
     /**
@@ -2693,11 +2695,11 @@ class WPInv_Payment_Form_Elements {
                     <label :for='$id2'>$label</label>
 
                     <select class='form-control custom-select' :id='$id2' v-model='$field.items_type'>
-                        <option value='total'>"        . __( 'Buy all items on the list', 'invoicing' ) ."</option>
+                        <option value='total' :disabled='canCheckoutSeveralSubscriptions($field)'>"        . __( 'Buy all items on the list', 'invoicing' ) ."</option>
                         <option value='radio'>"        . __( 'Select a single item from the list', 'invoicing' ) ."</option>
-                        <option value='checkbox'>"     . __( 'Select one or more items on the list', 'invoicing' ) ."</option>
+                        <option value='checkbox' :disabled='canCheckoutSeveralSubscriptions($field)'>"     . __( 'Select one or more items on the list', 'invoicing' ) ."</option>
                         <option value='select'>"       . __( 'Select a single item from a dropdown', 'invoicing' ) ."</option>
-                        <option value='multi_select'>" . __( 'Select a one or more items from a dropdown', 'invoicing' ) ."</option>
+                        <option value='multi_select' :disabled='canCheckoutSeveralSubscriptions($field)'>" . __( 'Select a one or more items from a dropdown', 'invoicing' ) ."</option>
                     </select>
 
                 </div>
@@ -2723,9 +2725,16 @@ class WPInv_Payment_Form_Elements {
             'order'          => 'ASC',
             'posts_per_page' => -1,
             'post_status'    => array( 'publish' ),
+            'meta_query'     => array(
+                array(
+                    'key'       => '_wpinv_type',
+                    'compare'   => '!=',
+                    'value'     => 'package'
+                )
+            )
         );
     
-        $items      = get_posts( apply_filters( 'wpinv_item_dropdown_query_args', $item_args ) );
+        $items = get_posts( apply_filters( 'wpinv_payment_form_item_dropdown_query_args', $item_args ) );
 
         if ( empty( $items ) ) {
             return array();

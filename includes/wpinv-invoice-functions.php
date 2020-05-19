@@ -254,11 +254,11 @@ function wpinv_insert_invoice( $invoice_data = array(), $wp_error = false ) {
         $invoice->set( 'state', sanitize_text_field( $_POST['state'] ) );
         
         $wpinv_ip_address_country = $invoice->country;
-        
+
         $invoice = $invoice->recalculate_totals( true );
-        
+
         wpinv_set_checkout_session( $checkout_session );
-                    
+
         return $invoice;
     }
     
@@ -1152,11 +1152,11 @@ add_action( 'wpinv_update_status', 'wpinv_complete_payment', 100, 3 );
 
 function wpinv_update_payment_status( $invoice_id, $new_status = 'publish' ) {    
     $invoice = !empty( $invoice_id ) && is_object( $invoice_id ) ? $invoice_id : wpinv_get_invoice( (int)$invoice_id );
-    
+
     if ( empty( $invoice ) ) {
         return false;
     }
-    
+
     return $invoice->update_status( $new_status );
 }
 

@@ -1,5 +1,5 @@
 === Invoicing - Invoice & Payments Plugin ===
-Contributors: stiofansisland, paoltaia, ayecode, Ismiaini
+Contributors: stiofansisland, paoltaia, ayecode, Ismiaini, picocodes
 Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal
 Requires at least: 4.9
@@ -134,6 +134,10 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 * Ability to create payment forms - ADDED
 * If VAT is enabled, you can now disable taxes on a per item basis - ADDED
 * If VAT is enabled, you can now disable taxes on a per invoice basis - ADDED
+* Inovice action buttons not working on the 2019 theme - FIXED
+* Ability to change the invoice date - ADDED
+* CTA for free checkouts changed from "Complete" to "Continue" - CHANGED
+* Unable to checkout when required fields are hidden via CSS - FIXED
 
 = 1.0.18 =
 * Display customer notes on the invoice print page - ADDED
