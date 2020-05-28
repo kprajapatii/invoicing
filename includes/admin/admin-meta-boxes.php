@@ -135,6 +135,7 @@ function wpinv_register_item_meta_boxes() {
         add_meta_box( 'wpinv_field_vat_classes', __( 'VAT rates class to use', 'invoicing' ), 'WPInv_Meta_Box_Items::vat_classes', 'wpi_item', 'normal', 'high' );
     }
     
+    add_meta_box( 'wpinv_field_item_shortcode', __( 'Shortcode', 'invoicing' ), 'WPInv_Meta_Box_Items::shortcode', 'wpi_item', 'side', 'core' );
     add_meta_box( 'wpinv_field_item_info', __( 'Item info', 'invoicing' ), 'WPInv_Meta_Box_Items::item_info', 'wpi_item', 'side', 'core' );
     add_meta_box( 'wpinv_field_meta_values', __( 'Item Meta Values', 'invoicing' ), 'WPInv_Meta_Box_Items::meta_values', 'wpi_item', 'side', 'core' );
 }
@@ -386,3 +387,17 @@ function wpinv_discount_metabox_save( $post_id, $post, $update = false ) {
     return /** @scrutinizer ignore-call */ wpinv_store_discount( $post_id, $_POST, $post, $update );
 }
 add_action( 'save_post', 'wpinv_discount_metabox_save', 10, 3 );
+
+/**
+ * Remove trash link from the default form.
+ */
+function getpaid_remove_action_link( $actions, $post ) {
+    $post = get_post( $post );
+    if ( 'wpi_payment_form' == $post->post_type && $post->ID == wpinv_get_default_payment_form() ) {
+        unset( $actions['trash'] );
+        unset( $actions['inline hide-if-no-js'] );
+    }
+    return $actions;
+}
+add_filter( 'post_row_actions', 'getpaid_remove_action_link', 10, 2 );
+   

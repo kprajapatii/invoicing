@@ -14,35 +14,39 @@ class WPInv_Admin_Menus {
      */
     public function __construct() {
         add_action( 'admin_menu', array( $this, 'admin_menu' ), 10 );
-        add_action( 'admin_menu', array( $this, 'add_addons_menu' ), 99 );
+        add_action( 'admin_menu', array( $this, 'add_addons_menu' ), 100 );
+        add_action( 'admin_menu', array( $this, 'add_settings_menu' ), 60 );
         add_action( 'admin_menu', array( $this, 'remove_admin_submenus' ), 10 );
         add_action( 'admin_head-nav-menus.php', array( $this, 'add_nav_menu_meta_boxes' ) );
     }
 
     public function admin_menu() {
-        global $menu, $submenu;
-
-        if ( ! wpinv_current_user_can_manage_invoicing() ) {
-            return;
-        }
 
         $capability = apply_filters( 'invoicing_capability', wpinv_get_capability() );
+        add_menu_page(
+            __( 'GetPaid', 'invoicing' ),
+            __( 'GetPaid', 'invoicing' ),
+            $capability,
+            'wpinv',
+            null,
+            'data:image/svg+xml;base64,' . base64_encode( file_get_contents( WPINV_PLUGIN_DIR . 'assets/images/GetPaid.svg' ) ),
+            '54.123460'
+        );
 
-        if ( wpinv_current_user_can_manage_invoicing() ) {
-            $menu[] = array( '', 'read', 'separator-wpinv', '', 'wp-menu-separator wpinv' );
+    }
 
-            // Allow users with 'manage_invocing' capability to create new invoices
-            $submenu['post-new.php?post_type=wpi_invoice'][]  = array( '', '', 'post-new.php?post_type=wpi_invoice', '' );
-            $submenu['post-new.php?post_type=wpi_item'][]     = array( '', '', 'post-new.php?post_type=wpi_item', '' );
-            $submenu['post-new.php?post_type=wpi_discount'][] = array( '', '', 'post-new.php?post_type=wpi_discount', '' );
-
-        }
-
-        $wpi_invoice = get_post_type_object( 'wpi_invoice' );
-
-        add_menu_page( __( 'Invoicing', 'invoicing' ), __( 'Invoicing', 'invoicing' ), $capability, 'wpinv', null, $wpi_invoice->menu_icon, '54.123460' );
-
-        add_submenu_page( 'wpinv', __( 'Invoice Settings', 'invoicing' ), __( 'Settings', 'invoicing' ), $capability, 'wpinv-settings', array( $this, 'options_page' ));
+    /**
+     * Registers the settings menu.
+     */
+    public function add_settings_menu() {
+        add_submenu_page(
+            'wpinv',
+            __( 'Invoice Settings', 'invoicing' ),
+            __( 'Settings', 'invoicing' ),
+            apply_filters( 'invoicing_capability', wpinv_get_capability() ),
+            'wpinv-settings',
+            array( $this, 'options_page' )
+        );
     }
 
     public function add_addons_menu(){

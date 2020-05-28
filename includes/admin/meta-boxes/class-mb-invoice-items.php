@@ -386,6 +386,18 @@ class WPInv_Meta_Box_Items {
         do_action( 'wpinv_meta_values_metabox_after', $post );
     }
 
+    /**
+     * Display the items buy now shortcode.
+     */
+    public static function shortcode( $post ) {
+
+        if ( ! is_numeric( $post ) ) {
+            $post = $post->ID;
+        }
+
+        echo "<input type='text' style='min-width: 100%; font-size: small;' value='[getpaid item=$post]' disabled>";
+    }
+
     public static function save( $post_id, $data, $post ) {
         $invoice        = new WPInv_Invoice( $post_id );
 

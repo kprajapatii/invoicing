@@ -187,6 +187,8 @@ jQuery(function ($) {
 
 				}
 
+				this.selected_item = ''
+
 			},
 
 			// Adds a currency to a price.
@@ -198,7 +200,11 @@ jQuery(function ($) {
 					id: key,
 					price: '0.00',
 					recurring: false,
-					description: ''
+					new: true,
+					type: 'custom',
+					description: '',
+					rule: 'digital',
+					class: '_standard'
 				});
 			},
 
@@ -233,5 +239,17 @@ jQuery(function ($) {
 		}
 
 	});
+
+	$( document ).ready( function() {
+
+		if ( wpinvPaymentFormAdmin && wpinvPaymentFormAdmin.is_default ) {
+			$('#minor-publishing').hide()
+			$('#delete-action').hide()
+			$('#wpinv-payment-form-shortcode').hide()
+		}
+
+		$('.post-type-wpi_payment_form #visibility').hide()
+		$('.post-type-wpi_payment_form .misc-pub-curtime').hide()
+	} )
 
 });
