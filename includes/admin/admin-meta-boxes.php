@@ -66,78 +66,25 @@ function wpinv_save_meta_boxes( $post_id, $post, $update = false ) {
             WPInv_Meta_Box_Items::save( $post_id, $_POST, $post );
         }
     } else if ( $post->post_type == 'wpi_item' ) {
-        // verify nonce
-        if ( isset( $_POST['wpinv_vat_meta_box_nonce'] ) && wp_verify_nonce( $_POST['wpinv_vat_meta_box_nonce'], 'wpinv_item_meta_box_save' ) ) {
-            $fields                                 = array();
-            $fields['_wpinv_price']              = 'wpinv_item_price';
-            $fields['_wpinv_vat_class']          = 'wpinv_vat_class';
-            $fields['_wpinv_vat_rule']           = 'wpinv_vat_rules';
-            $fields['_wpinv_type']               = 'wpinv_item_type';
-            $fields['_wpinv_is_recurring']       = 'wpinv_is_recurring';
-            $fields['_wpinv_recurring_period']   = 'wpinv_recurring_period';
-            $fields['_wpinv_recurring_interval'] = 'wpinv_recurring_interval';
-            $fields['_wpinv_recurring_limit']    = 'wpinv_recurring_limit';
-            $fields['_wpinv_free_trial']         = 'wpinv_free_trial';
-            $fields['_wpinv_trial_period']       = 'wpinv_trial_period';
-            $fields['_wpinv_trial_interval']     = 'wpinv_trial_interval';
-            $fields['_wpinv_dynamic_pricing']    = 'wpinv_name_your_price';
-            $fields['_minimum_price']            = 'wpinv_minimum_price';
-            
-            if ( !isset( $_POST['wpinv_is_recurring'] ) ) {
-                $_POST['wpinv_is_recurring'] = 0;
-            }
-
-            if ( !isset( $_POST['wpinv_name_your_price'] ) ) {
-                $_POST['wpinv_name_your_price'] = 0;
-            }
-            
-            if ( !isset( $_POST['wpinv_free_trial'] ) || empty( $_POST['wpinv_is_recurring'] ) ) {
-                $_POST['wpinv_free_trial'] = 0;
-            }
-            
-            foreach ( $fields as $field => $name ) {
-                if ( isset( $_POST[ $name ] ) ) {
-                    $allowed = apply_filters( 'wpinv_item_allowed_save_meta_value', true, $field, $post_id );
-
-                    if ( !$allowed ) {
-                        continue;
-                    }
-
-                    if ( $field == '_wpinv_price' ) {
-                        $value = wpinv_sanitize_amount( $_POST[ $name ] );
-                    } else {
-                        $value = is_string( $_POST[ $name ] ) ? sanitize_text_field( $_POST[ $name ] ) : $_POST[ $name ];
-                    }
-                    
-                    $value = apply_filters( 'wpinv_item_metabox_save_' . $field, $value, $name );
-                    update_post_meta( $post_id, $field, $value );
-                }
-            }
-            
-            if ( !get_post_meta( $post_id, '_wpinv_custom_id', true ) ) {
-                update_post_meta( $post_id, '_wpinv_custom_id', $post_id );
-            }
-        }
+        GetPaid_Meta_Box_Item_Details::save( $post_id );
     }
 }
 add_action( 'save_post', 'wpinv_save_meta_boxes', 10, 3 );
 
 function wpinv_register_item_meta_boxes() {    
     global $wpinv_euvat;
-    
-    add_meta_box( 'wpinv_field_prices', __( 'Item Price', 'invoicing' ), 'WPInv_Meta_Box_Items::prices', 'wpi_item', 'normal', 'high' );
 
-    if ( $wpinv_euvat->allow_vat_rules() ) {
-        add_meta_box( 'wpinv_field_vat_rules', __( 'VAT rules type to use', 'invoicing' ), 'WPInv_Meta_Box_Items::vat_rules', 'wpi_item', 'normal', 'high' );
+    // Item details metabox.
+    add_meta_box( 'wpinv_item_details', __( 'Item Details', 'invoicing' ), 'GetPaid_Meta_Box_Item_Details::output', 'wpi_item', 'normal', 'high' );
+
+    // If taxes are enabled, register the tax metabox.
+    if ( $wpinv_euvat->allow_vat_rules() || $wpinv_euvat->allow_vat_classes() ) {
+        add_meta_box( 'wpinv_item_vat', __( 'VAT / Tax', 'invoicing' ), 'GetPaid_Meta_Box_Item_VAT::output', 'wpi_item', 'normal', 'high' );
     }
+
+    // Item info.
+    add_meta_box( 'wpinv_field_item_info', __( 'Item info', 'invoicing' ), 'GetPaid_Meta_Box_Item_Info::output', 'wpi_item', 'side', 'core' );
     
-    if ( $wpinv_euvat->allow_vat_classes() ) {
-        add_meta_box( 'wpinv_field_vat_classes', __( 'VAT rates class to use', 'invoicing' ), 'WPInv_Meta_Box_Items::vat_classes', 'wpi_item', 'normal', 'high' );
-    }
-    
-    add_meta_box( 'wpinv_field_item_shortcode', __( 'Shortcode', 'invoicing' ), 'WPInv_Meta_Box_Items::shortcode', 'wpi_item', 'side', 'core' );
-    add_meta_box( 'wpinv_field_item_info', __( 'Item info', 'invoicing' ), 'WPInv_Meta_Box_Items::item_info', 'wpi_item', 'side', 'core' );
-    add_meta_box( 'wpinv_field_meta_values', __( 'Item Meta Values', 'invoicing' ), 'WPInv_Meta_Box_Items::meta_values', 'wpi_item', 'side', 'core' );
 }
 
 function wpinv_register_discount_meta_boxes() {
@@ -400,4 +347,3 @@ function getpaid_remove_action_link( $actions, $post ) {
     return $actions;
 }
 add_filter( 'post_row_actions', 'getpaid_remove_action_link', 10, 2 );
-   

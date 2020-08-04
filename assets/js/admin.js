@@ -20,6 +20,7 @@ jQuery(function($) {
         }
     });
 
+    // Init select 2.
     wpi_select2();
     function wpi_select2() {
         if (jQuery("select.wpi_select2").length > 0) {
@@ -29,6 +30,50 @@ jQuery(function($) {
             });
         }
     }
+
+    // Subscription items.
+    if ( $('#wpinv_is_recurring').length ) {
+
+        // Toggles the 'getpaid_is_subscription_item' class on the body.
+        var watch_subscription_change = function() {
+            $('body').toggleClass( 'getpaid_is_subscription_item', $('#wpinv_is_recurring').is(':checked') )
+            $('body').toggleClass( 'getpaid_is_not_subscription_item', ! $('#wpinv_is_recurring').is(':checked') )
+
+            $('.getpaid-price-input').toggleClass( 'col-sm-4', $('#wpinv_is_recurring').is(':checked') )
+            $('.getpaid-price-input').toggleClass( 'col-sm-12', ! $('#wpinv_is_recurring').is(':checked') )
+
+        }
+
+        // Toggle the class when the document is loaded...
+        watch_subscription_change();
+
+        // ... and whenever the checkbox changes.
+        $(document).on('change', '#wpinv_is_recurring', watch_subscription_change);
+
+    }
+
+    // Dynamic items.
+    if ( $('#wpinv_name_your_price').length ) {
+
+        // Toggles the 'getpaid_is_dynamic_item' class on the body.
+        var watch_dynamic_change = function() {
+            $('body').toggleClass( 'getpaid_is_dynamic_item', $('#wpinv_name_your_price').is(':checked') )
+            $('body').toggleClass( 'getpaid_is_not_dynamic_item', ! $('#wpinv_name_your_price').is(':checked') )
+        }
+
+        // Toggle the class when the document is loaded...
+        watch_dynamic_change();
+
+        // ... and whenever the checkbox changes.
+        $(document).on('change', '#wpinv_name_your_price', watch_dynamic_change);
+
+    }
+
+    // Non-editable items.
+    $('.wpi-editable-n #post :input').attr( 'disabled', true );
+
+    // Rename excerpt to 'Item description'
+    $('body.post-type-wpi_item #postexcerpt h2.hndle span').text( WPInv_Admin.item_description )
 
     var wpiGlobalTax = WPInv_Admin.tax != 0 ? WPInv_Admin.tax : 0;
     var wpiGlobalDiscount = WPInv_Admin.discount != 0 ? WPInv_Admin.discount : 0;
@@ -424,7 +469,6 @@ jQuery(function($) {
     var WPInv = {
         init: function() {
             this.preSetup();
-            this.prices();
             this.remove_item();
             this.add_item();
             this.recalculateTotals();
@@ -912,69 +956,7 @@ jQuery(function($) {
             $('#wpinv-details input[name="wpinv_discount"]').val(data.discount);
             $('#wpinv-details input[name="wpinv_tax"]').val(data.tax);
         },
-        prices: function() {
-            var $this = this;
-            $this.check_recurring('#wpinv_is_recurring');
-            $(document.body).on('change', '#wpinv_is_recurring', function(e) {
-                $this.check_recurring(this);
-            });
-            $(document.body).on('change', '#wpinv_recurring_period', function(e) {
-                $this.recurring_period($(this).val());
-            });
-            $(document.body).on('change', '#wpinv_name_your_price', function(e) {
-                $( '.wpinv-row-minimum-price' ).toggle( this.checked )
-            });
-        },
-        check_recurring: function(el) {
-            var $obj = $('.wpinv-row-recurring-fields');
-            this.recurring_period($('#wpinv_recurring_period').val());
-            if ($(el).is(':checked')) {
-                $obj.removeClass('wpinv-recurring-n').addClass('wpinv-recurring-y');
-                $('input', $obj).prop('disabled', false);
-                $('select', $obj).prop('disabled', false);
-            } else {
-                $obj.removeClass('wpinv-recurring-y').addClass('wpinv-recurring-n');
-                $('input', $obj).prop('disabled', true);
-                $('select', $obj).prop('disabled', true);
-            }
-        },
-        recurring_period: function(val) {
-            var txt = '';
-            if (typeof val != 'undefined') {
-                txt = $('#wpinv_recurring_period').find('option[value="' + val + '"]').data('text');
-                txt = txt !== 'undefined' ? txt : '';
-            }
-            $('#wpinv_interval_text').text(txt);
-            this.recurring_interval(val);
-        },
-        recurring_interval: function(period) {
-            var limit;
-            switch (period) {
-                case 'W':
-                    limit = 52;
-                    break;
-                case 'M':
-                    limit = 24;
-                    break;
-                case 'Y':
-                    limit = 5;
-                    break;
-                default:
-                case 'D':
-                    limit = 90;
-                    break;
-            }
-            var optioins = '';
-            for (i = 1; i <= limit; i++) {
-                optioins += '<option value="' + i + '">' + i + '</option>';
-            }
-            var $el = $('#wpinv_interval');
-            var val = $el.val();
-            $el.find('option').remove();
-            $el.append(optioins);
-            $el.val(val);
-            $el.find('option[value="' + val + '"]').attr('selected', 'selected');
-        },
+
         setup_tools: function() {
             $('#wpinv_tools_table').on('click', '.wpinv-tool', function(e) {
                 var $this = $(this);
