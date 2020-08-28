@@ -14,7 +14,7 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	 *
 	 * @var string
 	 */
-	protected $custom_description = '';
+	protected $custom_description = null;
 
 	/**
 	 * Stores the item quantity.
@@ -22,6 +22,13 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	 * @var int
 	 */
 	protected $quantity = 1;
+
+	/**
+	 * Stores the item meta.
+	 *
+	 * @var array
+	 */
+	protected $meta = array();
 
 	/**
 	 * Is this item required?
@@ -36,6 +43,27 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	 * @var int
 	 */
 	protected $allow_quantities = false;
+
+	/**
+	 * Associated invoice.
+	 *
+	 * @var int
+	 */
+	public $invoice_id = 0;
+
+	/**
+	 * Item discount.
+	 *
+	 * @var float
+	 */
+	public $item_discount = 0;
+
+	/**
+	 * Item tax.
+	 *
+	 * @var float
+	 */
+	public $item_tax = 0;
 
     /*
 	|--------------------------------------------------------------------------
@@ -65,6 +93,17 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	}
 
 	/**
+	 * Get the item name without a suffix.
+	 *
+	 * @since 1.0.19
+	 * @param  string $context View or edit context.
+	 * @return string
+	 */
+	public function get_raw_name( $context = 'view' ) {
+		return parent::get_name( $context );
+	}
+
+	/**
 	 * Get the item description.
 	 *
 	 * @since 1.0.19
@@ -73,13 +112,13 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	 */
 	public function get_description( $context = 'view' ) {
 
-		if ( ! empty( $this->custom_description ) ) {
+		if ( isset( $this->custom_description ) ) {
 			return $this->custom_description;
 		}
 
 		return parent::get_description( $context );
 	}
-	
+
 	/**
 	 * Returns the sub total.
 	 *
@@ -88,6 +127,17 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	 * @return int
 	 */
 	public function get_sub_total( $context = 'view' ) {
+		return $this->get_quantity( $context ) * $this->get_initial_price( $context );
+	}
+
+	/**
+	 * Returns the recurring sub total.
+	 *
+	 * @since 1.0.19
+	 * @param  string $context View or edit context.
+	 * @return int
+	 */
+	public function get_recurring_sub_total( $context = 'view' ) {
 		return $this->get_quantity( $context ) * $this->get_price( $context );
 	}
 
@@ -113,10 +163,28 @@ class GetPaid_Form_Item  extends WPInv_Item {
 		}
 
 		if ( 'view' == $context ) {
-			return apply_filters( 'getpaid_payment_form_item_quanity', $quantity, $this );
+			return apply_filters( 'getpaid_payment_form_item_quantity', $quantity, $this );
 		}
 
 		return $quantity;
+
+	}
+
+	/**
+	 * Get the item meta data.
+	 *
+	 * @since 1.0.19
+	 * @param  string $context View or edit context.
+	 * @return meta
+	 */
+	public function get_item_meta( $context = 'view' ) {
+		$meta = $this->meta;
+
+		if ( 'view' == $context ) {
+			return apply_filters( 'getpaid_payment_form_item_meta', $meta, $this );
+		}
+
+		return $meta;
 
 	}
 
@@ -160,7 +228,6 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	 * Prepares form data for use.
 	 *
 	 * @since 1.0.19
-	 * @param  string $context View or edit context.
 	 * @return array
 	 */
 	public function prepare_data_for_use() {
@@ -173,6 +240,58 @@ class GetPaid_Form_Item  extends WPInv_Item {
 			'description'      => $this->get_description(),
 			'allow_quantities' => $this->allows_quantities(),
 			'required'         => $this->is_required(),
+		);
+
+	}
+
+	/**
+	 * Prepares form data for ajax use.
+	 *
+	 * @since 1.0.19
+	 * @return array
+	 */
+	public function prepare_data_for_invoice_edit_ajax() {
+
+		return array(
+			'id'     => $this->get_id(),
+			'texts'  => array(
+				'item-name'        => sanitize_text_field( $this->get_name() ),
+				'item-description' => wp_kses_post( $this->get_description() ),
+				'item-quantity'    => absint( $this->get_quantity() ),
+				'item-price'       => wpinv_price( wpinv_format_amount ( $this->get_price() ) ),
+				'item-total'       => wpinv_price( wpinv_format_amount( $this->get_sub_total() ) ),
+			),
+			'inputs' => array(
+				'item-id'          => $this->get_id(),
+				'item-name'        => sanitize_text_field( $this->get_name() ),
+				'item-description' => wp_kses_post( $this->get_description() ),
+				'item-quantity'    => absint( $this->get_quantity() ),
+				'item-price'       => $this->get_price(),
+			)
+		);
+
+	}
+
+	/**
+	 * Prepares form data for saving (cart_details).
+	 *
+	 * @since 1.0.19
+	 * @return array
+	 */
+	public function prepare_data_for_saving() {
+
+		return array(
+			'post_id'           => $this->invoice_id,
+			'item_id'           => $this->get_id(),
+			'item_name'         => sanitize_text_field( $this->get_name() ),
+			'item_description'  => $this->get_description(),
+			'tax'               => $this->item_tax,
+			'item_price'        => $this->get_price(),
+			'quantity'          => (int) $this->get_quantity(),
+			'discount'          => $this->item_discount,
+			'subtotal'          => $this->get_sub_total(),
+			'price'             => $this->get_sub_total() + $this->item_tax + $this->item_discount,
+			'meta'              => $this->get_item_meta(),
         );
 	}
 
@@ -198,8 +317,18 @@ class GetPaid_Form_Item  extends WPInv_Item {
 			$quantity = 1;
 		}
 
-		$this->quantity = $quantity;
+		$this->quantity = (int) $quantity;
 
+	}
+
+	/**
+	 * Set the item meta data.
+	 *
+	 * @since 1.0.19
+	 * @param  array $meta The item meta data.
+	 */
+	public function set_item_meta( $meta ) {
+		$this->meta = maybe_unserialize( $meta );
 	}
 
 	/**

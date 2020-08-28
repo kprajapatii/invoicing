@@ -137,12 +137,12 @@ abstract class GetPaid_Data {
 	 * If the object no longer exists, remove the ID.
 	 */
 	public function __wakeup() {
-		try {
-			$this->__construct( absint( $this->id ) );
-		} catch ( Exception $e ) {
+		$this->__construct( absint( $this->id ) );
+
+		if ( ! empty( $this->last_error ) ) {
 			$this->set_id( 0 );
-			$this->set_object_read( true );
 		}
+
 	}
 
 	/**
@@ -344,6 +344,58 @@ abstract class GetPaid_Data {
 	}
 
 	/**
+	 * Magic method for setting data fields.
+	 *
+	 * This method does not update custom fields in the database.
+	 *
+	 * @since 1.0.19
+	 * @access public
+	 *
+	 */
+	public function __set( $key, $value ) {
+
+		if ( 'id' == strtolower( $key ) ) {
+			return $this->set_id( $value );
+		}
+
+		if ( method_exists( $this, "set_$key") ) {
+
+			/* translators: %s: $key Key to set */
+			getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Object data such as "%s" should not be accessed directly. Use getters and setters.', 'getpaid' ), $key ), '1.0.19' );
+
+			call_user_func( array( $this, "set_$key" ), $value );
+		} else {
+			$this->set_prop( $key, $value );
+		}
+
+	}
+
+	/**
+     * Margic method for retrieving a property.
+     */
+    public function __get( $key ) {
+
+        // Check if we have a helper method for that.
+        if ( method_exists( $this, 'get_' . $key ) ) {
+
+			if ( 'post_type' != $key ) {
+				/* translators: %s: $key Key to set */
+				getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Object data such as "%s" should not be accessed directly. Use getters and setters.', 'getpaid' ), $key ), '1.0.19' );
+			}
+
+            return call_user_func( array( $this, 'get_' . $key ) );
+        }
+
+        // Check if the key is in the associated $post object.
+        if ( ! empty( $this->post ) && isset( $this->post->$key ) ) {
+            return $this->post->$key;
+        }
+
+		return $this->get_prop( $key );
+
+    }
+
+	/**
 	 * Get Meta Data by Key.
 	 *
 	 * @since  1.0.19
@@ -355,8 +407,10 @@ abstract class GetPaid_Data {
 	public function get_meta( $key = '', $single = true, $context = 'view' ) {
 
 		// Check if this is an internal meta key.
-		if ( $this->is_internal_meta_key( $key ) ) {
-			$function = 'get_' . $key;
+		$_key = str_replace( '_wpinv', '', $key );
+		$_key = str_replace( 'wpinv', '', $_key );
+		if ( $this->is_internal_meta_key( $_key ) ) {
+			$function = 'get_' . $_key;
 
 			if ( is_callable( array( $this, $function ) ) ) {
 				return $this->{$function}();
@@ -642,13 +696,13 @@ abstract class GetPaid_Data {
 	 * Sets item status.
 	 *
 	 * @since 1.0.19
-	 * @param  string $status New status.
+	 * @param string $status New status.
 	 * @return array details of change.
 	 */
 	public function set_status( $status ) {
         $old_status = $this->get_status();
 
-        $this->set_prop( 'status', $status );
+		$this->set_prop( 'status', $status );
 
 		return array(
 			'from' => $old_status,
@@ -740,10 +794,10 @@ abstract class GetPaid_Data {
 		if ( array_key_exists( $prop, $this->data ) ) {
 			if ( true === $this->object_read ) {
 				if ( $value !== $this->data[ $prop ] || array_key_exists( $prop, $this->changes ) ) {
-					$this->changes[ $prop ] = $value;
+					$this->changes[ $prop ] = maybe_unserialize( $value );
 				}
 			} else {
-				$this->data[ $prop ] = $value;
+				$this->data[ $prop ] = maybe_unserialize( $value );
 			}
 		}
 	}
@@ -823,12 +877,23 @@ abstract class GetPaid_Data {
 	/**
 	 * When invalid data is found, throw an exception unless reading from the DB.
 	 *
-	 * @throws Exception Data Exception.
 	 * @since 1.0.19
 	 * @param string $code             Error code.
 	 * @param string $message          Error message.
 	 */
 	protected function error( $code, $message ) {
-		throw new Exception( $message, $code );
+		$this->last_error = $message;
 	}
+
+	/**
+	 * Checks if the object is saved in the database
+	 *
+	 * @since 1.0.19
+	 * @return bool
+	 */
+	public function exists() {
+		$id = $this->get_id();
+		return ! empty( $id );
+	}
+
 }

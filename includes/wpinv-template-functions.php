@@ -1,157 +1,216 @@
 <?php
 /**
- * Contains functions related to Invoicing plugin.
+ * Template functions.
  *
- * @since 1.0.0
- * @package Invoicing
  */
- 
-// MUST have WordPress.
-if ( !defined( 'WPINC' ) ) {
-    exit( 'Do NOT access this file directly: ' . basename( __FILE__ ) );
-}
 
-if ( !is_admin() ) {
-    add_filter( 'template_include', 'wpinv_template', 10, 1 );
-    add_action( 'wpinv_invoice_print_body_start', 'wpinv_display_invoice_top_bar' );
-    add_action( 'wpinv_invoice_top_bar_left', 'wpinv_invoice_display_left_actions' );
-    add_action( 'wpinv_invoice_top_bar_right', 'wpinv_invoice_display_right_actions' );
-}
+defined( 'ABSPATH' ) || exit;
 
-function wpinv_template_path() {
-    return apply_filters( 'wpinv_template_path', wpinv_get_theme_template_dir_name() );
-}
-
-function wpinv_display_invoice_top_bar( $invoice ) {
-    if ( empty( $invoice ) ) {
-        return;
+/**
+ * Displays an invoice.
+ * 
+ * @param WPInv_Invoice $invoice.
+ */
+function getpaid_invoice( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/invoice.php', compact( 'invoice' ) );
     }
-    ?>
-    <div class="row wpinv-top-bar no-print">
-        <div class="container">
-            <div class="col-xs-6">
-                <?php do_action( 'wpinv_invoice_top_bar_left', $invoice );?>
-            </div>
-            <div class="col-xs-6 text-right">
-                <?php do_action( 'wpinv_invoice_top_bar_right', $invoice );?>
-            </div>
-        </div>
-    </div>
-    <?php
 }
+add_action( 'getpaid_invoice', 'getpaid_invoice', 10 );
 
-function wpinv_invoice_display_left_actions( $invoice ) {
-    if ( empty( $invoice ) ) {
-        return; // Exit if invoice is not set.
+/**
+ * Displays the invoice footer.
+ */
+function getpaid_invoice_footer( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/footer.php', compact( 'invoice' ) );
     }
-    
-    if ( $invoice->post_type == 'wpi_invoice' ) {
-        if ( $invoice->needs_payment() ) {
-            ?> <a class="btn btn-success btn-sm" title="<?php esc_attr_e( 'Pay This Invoice', 'invoicing' ); ?>" href="<?php echo esc_url( $invoice->get_checkout_payment_url() ); ?>"><?php _e( 'Pay For Invoice', 'invoicing' ); ?></a><?php
-        }
-    }
-    do_action('wpinv_invoice_display_left_actions', $invoice);
 }
+add_action( 'getpaid_invoice_footer', 'getpaid_invoice_footer', 10 );
 
-function wpinv_invoice_display_right_actions( $invoice ) {
-    if ( empty( $invoice ) ) {
-        return; // Exit if invoice is not set.
+/**
+ * Displays the invoice top bar.
+ */
+function getpaid_invoice_header( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/header.php', compact( 'invoice' ) );
     }
-
-    if ( $invoice->post_type == 'wpi_invoice' ) { ?>
-        <a class="btn btn-primary btn-sm btn-print-invoice" onclick="window.print();" href="javascript:void(0)"><?php _e( 'Print Invoice', 'invoicing' ); ?></a>
-        <?php if ( is_user_logged_in() ) { ?>
-        &nbsp;&nbsp;<a class="btn btn-warning btn-sm btn-invoice-history" href="<?php echo esc_url( wpinv_get_history_page_uri() ); ?>"><?php _e( 'Invoice History', 'invoicing' ); ?></a>
-        <?php }
-    }
-    do_action('wpinv_invoice_display_right_actions', $invoice);
 }
+add_action( 'getpaid_invoice_header', 'getpaid_invoice_header', 10 );
 
-function wpinv_before_invoice_content( $content ) {
-    global $post;
-
-    if ( !empty( $post ) && $post->post_type == 'wpi_invoice' && is_singular( 'wpi_invoice' ) && is_main_query() ) {
-        ob_start();
-        do_action( 'wpinv_before_invoice_content', $post->ID );
-        $content = ob_get_clean() . $content;
+/**
+ * Displays actions on the left side of the header.
+ */
+function getpaid_invoice_header_left_actions( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/header-left-actions.php', compact( 'invoice' ) );
     }
-
-    return $content;
 }
-add_filter( 'the_content', 'wpinv_before_invoice_content' );
+add_action( 'getpaid_invoice_header_left', 'getpaid_invoice_header_left_actions', 10 );
 
-function wpinv_after_invoice_content( $content ) {
-    global $post;
-
-    if ( !empty( $post ) && $post->post_type == 'wpi_invoice' && is_singular( 'wpi_invoice' ) && is_main_query() ) {
-        ob_start();
-        do_action( 'wpinv_after_invoice_content', $post->ID );
-        $content .= ob_get_clean();
+/**
+ * Displays actions on the right side of the invoice top bar.
+ */
+function getpaid_invoice_header_right_actions( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/header-right-actions.php', compact( 'invoice' ) );
     }
-
-    return $content;
 }
-add_filter( 'the_content', 'wpinv_after_invoice_content' );
+add_action( 'getpaid_invoice_header_right', 'getpaid_invoice_header_right_actions', 10 );
 
+/**
+ * Displays the invoice title, watermark, logo etc.
+ */
+function getpaid_invoice_details_top( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/details-top.php', compact( 'invoice' ) );
+    }
+}
+add_action( 'getpaid_invoice_details', 'getpaid_invoice_details_top', 10 );
+
+/**
+ * Displays the company logo.
+ */
+function getpaid_invoice_logo( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/invoice-logo.php', compact( 'invoice' ) );
+    }
+}
+add_action( 'getpaid_invoice_details_top_left', 'getpaid_invoice_logo' );
+
+/**
+ * Displays the type of invoice.
+ */
+function getpaid_invoice_type( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/invoice-type.php', compact( 'invoice' ) );
+    }
+}
+add_action( 'getpaid_invoice_details_top_right', 'getpaid_invoice_type' );
+
+/**
+ * Displays the invoice details.
+ */
+function getpaid_invoice_details_main( $invoice ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/details.php', compact( 'invoice' ) );
+    }
+}
+add_action( 'getpaid_invoice_details', 'getpaid_invoice_details_main', 50 );
+
+/**
+ * Returns a path to the templates directory.
+ * 
+ * @return string
+ */
 function wpinv_get_templates_dir() {
     return WPINV_PLUGIN_DIR . 'templates';
 }
 
+/**
+ * Returns a url to the templates directory.
+ * 
+ * @return string
+ */
 function wpinv_get_templates_url() {
     return WPINV_PLUGIN_URL . 'templates';
 }
 
+/**
+ * Displays a template.
+ * 
+ * First checks if there is a template overide, if not it loads the default template.
+ * 
+ * @param string $template_name e.g payment-forms/cart.php The template to locate.
+ * @param string $template_path The templates directory relative to the theme's root dir. Defaults to 'invoicing'.
+ * @param string $default_path The root path to the default template. Defaults to invoicing/templates
+ */
 function wpinv_get_template( $template_name, $args = array(), $template_path = '', $default_path = '' ) {
+
+    // Make variables available to the template.
     if ( ! empty( $args ) && is_array( $args ) ) {
 		extract( $args );
 	}
 
+    // Locate the template.
 	$located = wpinv_locate_template( $template_name, $template_path, $default_path );
-	// Allow 3rd party plugin filter template file from their plugin.
-	$located = apply_filters( 'wpinv_get_template', $located, $template_name, $args, $template_path, $default_path );
 
+    // Abort if the file does not exist.
 	if ( ! file_exists( $located ) ) {
         _doing_it_wrong( __FUNCTION__, sprintf( '<code>%s</code> does not exist.', $located ), '2.1' );
 		return;
 	}
 
+    // Fires before loading a template.
 	do_action( 'wpinv_before_template_part', $template_name, $template_path, $located, $args );
 
+    // Load the template.
 	include( $located );
 
+    // Fires after loading a template.
 	do_action( 'wpinv_after_template_part', $template_name, $template_path, $located, $args );
 }
 
+/**
+ * Retrieves a given template's html code.
+ * 
+ * First checks if there is a template overide, if not it loads the default template.
+ * 
+ * @param string $template_name e.g payment-forms/cart.php The template to locate.
+ * @param string $template_path The templates directory relative to the theme's root dir. Defaults to 'invoicing'.
+ * @param string $default_path The root path to the default template. Defaults to invoicing/templates
+ */
 function wpinv_get_template_html( $template_name, $args = array(), $template_path = '', $default_path = '' ) {
 	ob_start();
 	wpinv_get_template( $template_name, $args, $template_path, $default_path );
 	return ob_get_clean();
 }
 
+/**
+ * Returns the default path from where to look for template overides.
+ * 
+ * @return string
+ */
+function wpinv_template_path() {
+    return apply_filters( 'wpinv_template_path', wpinv_get_theme_template_dir_name() );
+}
+
+/**
+ * Returns the directory containing the template overides.
+ * 
+ * @return string
+ */
+function wpinv_get_theme_template_dir_name() {
+	return trailingslashit( apply_filters( 'wpinv_templates_dir', 'invoicing' ) );
+}
+
+/**
+ * Locates a template path.
+ * 
+ * First checks if there is a template overide, if not it loads the default template.
+ * 
+ * @param string $template_name e.g payment-forms/cart.php The template to locate.
+ * @param string $template_path The template path relative to the theme's root dir. Defaults to 'invoicing'.
+ * @param string $default_path The root path to the default template. Defaults to invoicing/templates
+ */
 function wpinv_locate_template( $template_name, $template_path = '', $default_path = '' ) {
-    if ( ! $template_path ) {
-        $template_path = wpinv_template_path();
-    }
 
-    if ( ! $default_path ) {
-        $default_path = WPINV_PLUGIN_DIR . 'templates/';
-    }
+    // Load the defaults for the template path and default path.
+    $template_path = empty( $template_path ) ? wpinv_template_path() : $template_path;
+    $default_path  = empty( $default_path ) ? WPINV_PLUGIN_DIR . 'templates/' : $default_path;
 
-    // Look within passed path within the theme - this is priority.
+    // Check if the template was overidden.
     $template = locate_template(
-        array(
-            trailingslashit( $template_path ) . $template_name,
-            $template_name
-        )
+        array( trailingslashit( $template_path ) . $template_name )
     );
 
-    // Get default templates/
-    if ( !$template && $default_path ) {
+    // Maybe replace it with a default path.
+    if ( empty( $template ) && ! empty( $default_path ) ) {
         $template = trailingslashit( $default_path ) . $template_name;
     }
 
     // Return what we found.
-    return apply_filters( 'wpinv_locate_template', $template, $template_name, $template_path );
+    return apply_filters( 'wpinv_locate_template', $template, $template_name, $template_path, $default_path );
 }
 
 function wpinv_get_template_part( $slug, $name = null, $load = true ) {
@@ -219,10 +278,6 @@ function wpinv_get_theme_template_paths() {
 	ksort( $file_paths, SORT_NUMERIC );
 
 	return array_map( 'trailingslashit', $file_paths );
-}
-
-function wpinv_get_theme_template_dir_name() {
-	return trailingslashit( apply_filters( 'wpinv_templates_dir', 'invoicing' ) );
 }
 
 function wpinv_checkout_meta_tags() {
@@ -581,6 +636,16 @@ function wpinv_html_checkbox( $args = array() ) {
     return $output;
 }
 
+/**
+ * Displays a hidden field.
+ */
+function getpaid_hidden_field( $name, $value ) {
+    $name  = sanitize_text_field( $name );
+    $value = esc_attr( $value );
+
+    echo "<input type='hidden' name='$name' value='$value' />";
+}
+
 function wpinv_html_text( $args = array() ) {
     // Backwards compatibility
     if ( func_num_args() > 1 ) {
@@ -794,73 +859,53 @@ function wpinv_ip_geolocation() {
 add_action( 'wp_ajax_wpinv_ip_geolocation', 'wpinv_ip_geolocation' );
 add_action( 'wp_ajax_nopriv_wpinv_ip_geolocation', 'wpinv_ip_geolocation' );
 
-// Set up the template for the invoice.
+/**
+ * Use our template to display invoices.
+ * 
+ * @param string $template the template that is currently being used.
+ */
 function wpinv_template( $template ) {
-    global $post, $wp_query;
-    
-    if ( ( is_single() || is_404() ) && !empty( $post->ID ) && (get_post_type( $post->ID ) == 'wpi_invoice' or get_post_type( $post->ID ) == 'wpi_quote')) {
+    global $post;
+
+    if ( ! is_admin() && ( is_single() || is_404() ) && ! empty( $post->ID ) && getpaid_is_invoice_post_type( get_post_type( $post->ID ) ) ) {
+
+        // If the user can view this invoice, display it.
         if ( wpinv_user_can_view_invoice( $post->ID ) ) {
-            $template = wpinv_get_template_part( 'wpinv-invoice-print', false, false );
+
+            return wpinv_get_template_part( 'wpinv-invoice-print', false, false );
+
+        // Else display an error message.
         } else {
-            $template = wpinv_get_template_part( 'wpinv-invalid-access', false, false );
+
+            return wpinv_get_template_part( 'wpinv-invalid-access', false, false );
+
         }
+
     }
 
     return $template;
 }
+add_filter( 'template_include', 'wpinv_template', 10, 1 );
 
 function wpinv_get_business_address() {
     $business_address   = wpinv_store_address();
     $business_address   = !empty( $business_address ) ? wpautop( wp_kses_post( $business_address ) ) : '';
-    
-    /*
-    $default_country    = wpinv_get_default_country();
-    $default_state      = wpinv_get_default_state();
-    
-    $address_fields = array();
-    if ( !empty( $default_state ) ) {
-        $address_fields[] = wpinv_state_name( $default_state, $default_country );
-    }
-    
-    if ( !empty( $default_country ) ) {
-        $address_fields[] = wpinv_country_name( $default_country );
-    }
-    
-    if ( !empty( $address_fields ) ) {
-        $address_fields = implode( ", ", $address_fields );
-                
-        $business_address .= wpautop( wp_kses_post( $address_fields ) );
-    }
-    */
     
     $business_address = $business_address ? '<div class="address">' . $business_address . '</div>' : '';
     
     return apply_filters( 'wpinv_get_business_address', $business_address );
 }
 
+/**
+ * Displays the company address.
+ */
 function wpinv_display_from_address() {
-    global $wpinv_euvat;
-    
-    $from_name = $wpinv_euvat->get_company_name();
-    if (empty($from_name)) {
-        $from_name = wpinv_get_business_name();
-    }
-    ?><div class="from col-xs-2"><strong><?php _e( 'From:', 'invoicing' ) ?></strong></div>
-    <div class="wrapper col-xs-10">
-        <div class="name"><?php echo esc_html( $from_name ); ?></div>
-        <?php if ( $address = wpinv_get_business_address() ) { ?>
-        <div class="address"><?php echo wpautop( wp_kses_post( $address ) );?></div>
-        <?php } ?>
-        <?php if ( $email_from = wpinv_mail_get_from_address() ) { ?>
-        <div class="email_from"><?php echo wp_sprintf( __( 'Email: %s', 'invoicing' ), $email_from );?></div>
-        <?php } ?>
-    </div>
-    <?php
+    wpinv_get_template( 'invoice/company-address.php' );
 }
+add_action( 'getpaid_invoice_details_left', 'wpinv_display_from_address', 10 );
 
 function wpinv_watermark( $id = 0 ) {
     $output = wpinv_get_watermark( $id );
-    
     return apply_filters( 'wpinv_get_watermark', $output, $id );
 }
 
@@ -868,6 +913,7 @@ function wpinv_get_watermark( $id ) {
     if ( !$id > 0 ) {
         return NULL;
     }
+
     $invoice = wpinv_get_invoice( $id );
     
     if ( !empty( $invoice ) && "wpi_invoice" === $invoice->post_type ) {
@@ -885,81 +931,157 @@ function wpinv_get_watermark( $id ) {
     return NULL;
 }
 
+/**
+ * @deprecated
+ */
 function wpinv_display_invoice_details( $invoice ) {
-    global $wpinv_euvat;
-    
-    $invoice_id = $invoice->ID;
-    $vat_name   = $wpinv_euvat->get_vat_name();
-    $use_taxes  = wpinv_use_taxes();
-    
-    $invoice_status = wpinv_get_invoice_status( $invoice_id );
-    ?>
-    <table class="table table-bordered table-sm">
-        <?php if ( $invoice_number = wpinv_get_invoice_number( $invoice_id ) ) { ?>
-            <tr class="wpi-row-number">
-                <th><?php echo apply_filters( 'wpinv_invoice_number_label', __( 'Invoice Number', 'invoicing' ), $invoice ); ?></th>
-                <td><?php echo esc_html( $invoice_number ); ?></td>
-            </tr>
-        <?php } ?>
-        <tr class="wpi-row-status">
-            <th><?php echo apply_filters( 'wpinv_invoice_status_label', __( 'Invoice Status', 'invoicing' ), $invoice ); ?></th>
-            <td><?php echo wpinv_invoice_status_label( $invoice_status, wpinv_get_invoice_status( $invoice_id, true ) ); ?></td>
-        </tr>
-        <?php if ( $invoice->is_renewal() ) { ?>
-        <tr class="wpi-row-parent">
-            <th><?php echo apply_filters( 'wpinv_invoice_parent_invoice_label', __( 'Parent Invoice', 'invoicing' ), $invoice ); ?></th>
-            <td><?php echo wpinv_invoice_link( $invoice->parent_invoice ); ?></td>
-        </tr>
-        <?php } ?>
-        <?php if ( ( $gateway_name = wpinv_get_payment_gateway_name( $invoice_id ) ) && ( $invoice->is_paid() || $invoice->is_refunded() ) ) { ?>
-            <tr class="wpi-row-gateway">
-                <th><?php echo apply_filters( 'wpinv_invoice_payment_method_label', __( 'Payment Method', 'invoicing' ), $invoice ); ?></th>
-                <td><?php echo $gateway_name; ?></td>
-            </tr>
-        <?php } ?>
-        <?php if ( $invoice_date = wpinv_get_invoice_date( $invoice_id ) ) { ?>
-            <tr class="wpi-row-date">
-                <th><?php echo apply_filters( 'wpinv_invoice_date_label', __( 'Invoice Date', 'invoicing' ), $invoice ); ?></th>
-                <td><?php echo $invoice_date; ?></td>
-            </tr>
-        <?php } ?>
-        <?php do_action( 'wpinv_display_details_before_due_date', $invoice_id ); ?>
-        <?php if ( wpinv_get_option( 'overdue_active' ) && $invoice->needs_payment() && ( $due_date = $invoice->get_due_date( true ) ) ) { ?>
-            <tr class="wpi-row-date">
-                <th><?php echo apply_filters( 'wpinv_invoice_due_date_label', __( 'Due Date', 'invoicing' ), $invoice ); ?></th>
-                <td><?php echo $due_date; ?></td>
-            </tr>
-        <?php } ?>
-        <?php do_action( 'wpinv_display_details_after_due_date', $invoice_id ); ?>
-        <?php if ( $owner_vat_number = $wpinv_euvat->get_vat_number() ) { ?>
-            <tr class="wpi-row-ovatno">
-                <th><?php echo apply_filters( 'wpinv_invoice_owner_vat_number_label', wp_sprintf( __( 'Owner %s Number', 'invoicing' ), $vat_name ), $invoice, $vat_name ); ?></th>
-                <td><?php echo $owner_vat_number; ?></td>
-            </tr>
-        <?php } ?>
-        <?php if ( $use_taxes && ( $user_vat_number = wpinv_get_invoice_vat_number( $invoice_id ) ) ) { ?>
-            <tr class="wpi-row-uvatno">
-                <th><?php echo apply_filters( 'wpinv_invoice_user_vat_number_label', wp_sprintf( __( 'Invoice %s Number', 'invoicing' ), $vat_name ), $invoice, $vat_name ); ?></th>
-                <td><?php echo $user_vat_number; ?></td>
-            </tr>
-        <?php } ?>
-        <tr class="table-active tr-total wpi-row-total">
-            <th><strong><?php _e( 'Total Amount', 'invoicing' ) ?></strong></th>
-            <td><strong><?php echo wpinv_payment_total( $invoice_id, true ); ?></strong></td>
-        </tr>
-        <?php if ( $subscription = wpinv_get_subscription( $invoice_id ) ) { ?>
-        <tr class="table-active wpi-row-recurring-total">
-            <th><?php echo apply_filters( 'wpinv_invoice_parent_invoice_label', __( 'Recurring Amount', 'invoicing' ), $invoice ); ?></th>
-            <td><strong><?php echo wpinv_price( wpinv_format_amount( $subscription->recurring_amount ), $invoice->get_currency() ); ?></strong></td>
-        </tr>
-        <tr class="wpi-row-expires">
-            <th><?php echo apply_filters( 'wpinv_invoice_parent_invoice_label', __( 'Renews On', 'invoicing' ), $invoice ); ?></th>
-            <td><?php echo sanitize_text_field( $subscription->expiration ); ?></td>
-        </tr>
-        <?php } ?>
-    </table>
-<?php
+    return getpaid_invoice_meta( $invoice );
 }
+
+/**
+ * Displays invoice meta.
+ */
+function getpaid_invoice_meta( $invoice ) {
+
+    $invoice = new WPInv_Invoice( $invoice );
+
+    // Ensure that we have an invoice.
+    if ( 0 == $invoice->get_id() ) {
+        return;
+    }
+
+    // Load the invoice meta.
+    $meta    = array(
+
+        'number' => array(
+            'label' => sprintf(
+                __( '%s Number', 'invoicing' ),
+                ucfirst( $invoice->get_type() )
+            ),
+            'value' => sanitize_text_field( $invoice->get_number() ),
+        ),
+
+        'status' => array(
+            'label' => sprintf(
+                __( '%s Status', 'invoicing' ),
+                ucfirst( $invoice->get_type() )
+            ),
+            'value' => sanitize_text_field( $invoice->get_status_nicename() ),
+        ),
+
+        'date' => array(
+            'label' => sprintf(
+                __( '%s Date', 'invoicing' ),
+                ucfirst( $invoice->get_type() )
+            ),
+            'value' => getpaid_format_date( $invoice->get_created_date() ),
+        ),
+
+        'date_paid' => array(
+            'label' => __( 'Paid On', 'invoicing' ),
+            'value' => getpaid_format_date( $invoice->get_completed_date() ),
+        ),
+
+        'transaction_id' => array(
+            'label' => __( 'Transaction ID', 'invoicing' ),
+            'value' => sanitize_text_field( $invoice->get_transaction_id() ),
+        ),
+
+        'due_date'  => array(
+            'label' => __( 'Due Date', 'invoicing' ),
+            'value' => getpaid_format_date( $invoice->get_due_date() ),
+        ),
+
+        'vat_number' => array(
+            'label' => sprintf(
+                __( '%s Number', 'invoicing' ),
+                $GLOBALS['wpinv_euvat']->get_vat_name()
+            ),
+            'value' => sanitize_text_field( $invoice->get_vat_number() ),
+        ),
+
+    );
+
+    // If it is not paid, remove the date of payment.
+    if ( ! $invoice->is_paid() ) {
+        unset( $meta[ 'date_paid' ] );
+        unset( $meta[ 'transaction_id' ] );
+    }
+
+    // Only display the due date if due dates are enabled.
+    if ( ! $invoice->needs_payment() || ! wpinv_get_option( 'overdue_active' ) ) {
+        unset( $meta[ 'due_date' ] );
+    }
+
+    // Only display the vat number if taxes are enabled.
+    if ( ! wpinv_use_taxes() ) {
+        unset( $meta[ 'vat_number' ] );
+    }
+
+    if ( $invoice->is_recurring() ) {
+
+        // Link to the parent invoice.
+        if ( $invoice->is_renewal() ) {
+
+            $meta[ 'parent' ] = array(
+
+                'label' => sprintf(
+                    __( 'Parent %s', 'invoicing' ),
+                    ucfirst( $invoice->get_type() )
+                ),
+
+                'value' => wpinv_invoice_link( $invoice->get_parent_id() ),
+
+            );
+
+        }
+
+        $subscription = wpinv_get_subscription( $invoice );
+
+        if ( ! empty ( $subscription ) ) {
+
+            // Display the renewal date.
+            if ( $subscription->is_active() && 'cancelled' != $subscription->status ) {
+
+                $meta[ 'renewal_date' ] = array(
+
+                    'label' => __( 'Renews On', 'invoicing' ),
+                    'value' => getpaid_format_date( $subscription->expiration ),
+        
+                );
+
+            }
+
+            if ( $invoice->is_parent() ) {
+
+                // Display the recurring amount.
+                $meta[ 'recurring_total' ] = array(
+
+                    'label' => __( 'Recurring Amount', 'invoicing' ),
+                    'value' => wpinv_price( wpinv_format_amount( $subscription->recurring_amount ), $invoice->get_currency() ),
+        
+                );
+
+            }
+            
+        }
+    }
+
+    // Add the invoice total to the meta.
+    $meta[ 'invoice_total' ] = array(
+
+        'label' => __( 'Total Amount', 'invoicing' ),
+        'value' => wpinv_price( wpinv_format_amount( $invoice->get_total() ), $invoice->get_currency() ),
+
+    );
+
+    // Provide a way for third party plugins to filter the meta.
+    $meta = apply_filters( 'getpaid_invoice_meta_data', $meta, $invoice );
+
+    wpinv_get_template( 'invoice/invoice-meta.php', compact( 'invoice', 'meta' ) );
+
+}
+add_action( 'getpaid_invoice_details_right', 'getpaid_invoice_meta', 10 );
 
 /**
  * Retrieves the address markup to use on Invoices.
@@ -1000,203 +1122,57 @@ function wpinv_get_invoice_address_markup( $billing_details, $separator = '<br/>
     
 }
 
-function wpinv_display_to_address( $invoice_id = 0 ) {
-    $invoice = wpinv_get_invoice( $invoice_id );
-    
-    if ( empty( $invoice ) ) {
-        return NULL;
+/**
+ * Displays the billing address.
+ * 
+ * @param WPInv_Invoice $invoice
+ */
+function wpinv_display_to_address( $invoice = 0 ) {
+    if ( ! empty( $invoice ) ) {
+        wpinv_get_template( 'invoice/billing-address.php', compact( 'invoice' ) );
     }
-    
-    $billing_details = $invoice->get_user_info();
-    $output = '<div class="to col-xs-2"><strong>' . __( 'To:', 'invoicing' ) . '</strong></div>';
-    $output .= '<div class="wrapper col-xs-10">';
-    
-    ob_start();
-    do_action( 'wpinv_display_to_address_top', $invoice );
-    $output .= ob_get_clean();
-    
-    $address_row = wpinv_get_invoice_address_markup( $billing_details );
-
-    if ( $address_row ) {
-        $output .= '<div class="address">' . $address_row . '</div>';
-    }
-
-    if ( $phone = $invoice->get_phone() ) {
-        $output .= '<div class="phone">' . wp_sprintf( __( 'Phone: %s', 'invoicing' ), esc_html( $phone ) ) . '</div>';
-    }
-    if ( $email = $invoice->get_email() ) {
-        $output .= '<div class="email">' . wp_sprintf( __( 'Email: %s' , 'invoicing'), esc_html( $email ) ) . '</div>';
-    }
-
-    ob_start();
-    do_action( 'wpinv_display_to_address_bottom', $invoice );
-    $output .= ob_get_clean();
-    
-    $output .= '</div>';
-    $output = apply_filters( 'wpinv_display_to_address', $output, $invoice );
-
-    echo $output;
 }
+add_action( 'getpaid_invoice_details_left', 'wpinv_display_to_address', 40 );
 
+
+/**
+ * Displays invoice line items.
+ */
 function wpinv_display_line_items( $invoice_id = 0 ) {
-    global $wpinv_euvat, $ajax_cart_details;
-    $invoice            = wpinv_get_invoice( $invoice_id );
-    $quantities_enabled = wpinv_item_quantities_enabled();
-    $use_taxes          = wpinv_use_taxes();
-    if ( !$use_taxes && (float)$invoice->get_tax() > 0 ) {
-        $use_taxes = true;
+
+    // Prepare the invoice.
+    $invoice = new WPInv_Invoice( $invoice_id );
+
+    // Abort if there is no invoice.
+    if ( 0 == $invoice->get_id() ) {
+        return;
     }
-    $zero_tax           = !(float)$invoice->get_tax() > 0 ? true : false;
-    $tax_label           = $use_taxes && $invoice->has_vat() ? $wpinv_euvat->get_vat_name() : __( 'Tax', 'invoicing' );
-    $tax_title          = !$zero_tax && $use_taxes ? ( wpinv_prices_include_tax() ? wp_sprintf( __( '(%s Incl.)', 'invoicing' ), $tax_label ) : wp_sprintf( __( '(%s Excl.)', 'invoicing' ), $tax_label ) ) : '';
 
-    $cart_details       = $invoice->get_cart_details();
-    $ajax_cart_details  = $cart_details;
-    ob_start();
-    ?>
-    <table class="table table-sm table-bordered">
-        <thead>
-            <tr>
-                <th class="name"><strong><?php _e( "Item Name", "invoicing" );?></strong></th>
-                <th class="rate"><strong><?php _e( "Price", "invoicing" );?></strong></th>
-                <?php if ($quantities_enabled) { ?>
-                    <th class="qty"><strong><?php _e( "Qty", "invoicing" );?></strong></th>
-                <?php } ?>
-                <?php if ($use_taxes && !$zero_tax) { ?>
-                    <th class="tax"><strong><?php echo $tax_label . ' <span class="normal small">(%)</span>'; ?></strong></th>
-                <?php } ?>
-                <th class="total"><strong><?php echo __( "Item Total", "invoicing" ) . ' <span class="normal small">' . $tax_title . '<span>';?></strong></th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php 
-            if ( !empty( $cart_details ) ) {
-                do_action( 'wpinv_display_line_items_start', $invoice );
+    // Line item columns.
+    $columns = getpaid_invoice_item_columns( $invoice );
+    $columns = apply_filters( 'getpaid_invoice_line_items_table_columns', $columns, $invoice );
 
-                $count = 0;
-                $cols  = 3;
-                foreach ( $cart_details as $key => $cart_item ) {
-                    $item_id    = !empty($cart_item['id']) ? absint( $cart_item['id'] ) : '';
-                    $item_price = isset($cart_item["item_price"]) ? wpinv_round_amount( $cart_item["item_price"] ) : 0;
-                    $line_total = isset($cart_item["subtotal"]) ? wpinv_round_amount( $cart_item["subtotal"] ) : 0;
-                    $quantity   = !empty($cart_item['quantity']) && (int)$cart_item['quantity'] > 0 ? absint( $cart_item['quantity'] ) : 1;
-
-                    $item       = $item_id ? new WPInv_Item( $item_id ) : NULL;
-                    $summary    = '';
-	                $item_name    = '';
-                    $cols       = 3;
-                    if ( !empty($item) ) {
-                        $item_name  = $item->get_name();
-                        $summary    = $item->get_summary();
-                    }
-                    $item_name  = !empty($cart_item['name']) ? $cart_item['name'] : $item_name;
-
-                    $summary = apply_filters( 'wpinv_print_invoice_line_item_summary', $summary, $cart_item, $item, $invoice );
-
-                    $item_tax       = '';
-                    $tax_rate       = '';
-                    if ( $use_taxes && $cart_item['tax'] > 0 && $cart_item['subtotal'] > 0 ) {
-                        $item_tax = wpinv_price( wpinv_format_amount( $cart_item['tax'] ), $invoice->get_currency() );
-                        $tax_rate = !empty( $cart_item['vat_rate'] ) ? $cart_item['vat_rate'] : ( $cart_item['tax'] / $cart_item['subtotal'] ) * 100;
-                        $tax_rate = $tax_rate > 0 ? (float)wpinv_round_amount( $tax_rate, 4 ) : '';
-                        $tax_rate = $tax_rate != '' ? ' <small class="tax-rate">(' . $tax_rate . '%)</small>' : '';
-                    }
-
-                    $line_item_tax = $item_tax . $tax_rate;
-
-                    if ( $line_item_tax === '' ) {
-                        $line_item_tax = 0; // Zero tax
-                    }
-
-                    $action = apply_filters( 'wpinv_display_line_item_action', '', $cart_item, $invoice, $cols );
-
-                    $line_item = '<tr class="row-' . ( ($count % 2 == 0) ? 'even' : 'odd' ) . ' wpinv-item">';
-                        $line_item .= '<td class="name">' . $action. esc_html__( $item_name, 'invoicing' ) . wpinv_get_item_suffix( $item );
-                        if ( $summary !== '' ) {
-                            $line_item .= '<br/><small class="meta">' . wpautop( wp_kses_post( $summary ) ) . '</small>';
-                        }
-                        $line_item .= '</td>';
-
-                        $line_item .= '<td class="rate">' . esc_html__( wpinv_price( wpinv_format_amount( $item_price ), $invoice->get_currency() ) ) . '</td>';
-                        if ($quantities_enabled) {
-                            $cols++;
-                            $line_item .= '<td class="qty">' . $quantity . '</td>';
-                        }
-                        if ($use_taxes && !$zero_tax) {
-                            $cols++;
-                            $line_item .= '<td class="tax">' . $line_item_tax . '</td>';
-                        }
-                        $line_item .= '<td class="total">' . esc_html__( wpinv_price( wpinv_format_amount( $line_total ), $invoice->get_currency() ) ) . '</td>';
-                    $line_item .= '</tr>';
-
-                    echo apply_filters( 'wpinv_display_line_item', $line_item, $cart_item, $invoice, $cols );
-
-                    $count++;
-                }
-
-                do_action( 'wpinv_display_before_subtotal', $invoice, $cols );
-                ?>
-                <tr class="row-sub-total row_odd">
-                    <td class="rate" colspan="<?php echo ( $cols - 1 ); ?>"><?php echo apply_filters( 'wpinv_print_cart_subtotal_label', '<strong>' . __( 'Sub Total', 'invoicing' ) . ':</strong>', $invoice ); ?></td>
-                    <td class="total"><strong><?php _e( wpinv_subtotal( $invoice_id, true ) ) ?></strong></td>
-                </tr>
-                <?php
-                do_action( 'wpinv_display_after_subtotal', $invoice, $cols );
-                
-                if ( wpinv_discount( $invoice_id, false ) > 0 ) {
-                    do_action( 'wpinv_display_before_discount', $invoice, $cols );
-                    ?>
-                        <tr class="row-discount">
-                            <td class="rate" colspan="<?php echo ( $cols - 1 ); ?>"><?php wpinv_get_discount_label( wpinv_discount_code( $invoice_id ) ); ?>:</td>
-                            <td class="total"><?php echo wpinv_discount( $invoice_id, true, true ); ?></td>
-                        </tr>
-                    <?php
-                    do_action( 'wpinv_display_after_discount', $invoice, $cols );
-                }
-
-                if ( $use_taxes ) {
-                    do_action( 'wpinv_display_before_tax', $invoice, $cols );
-                    ?>
-                    <tr class="row-tax">
-                        <td class="rate" colspan="<?php echo ( $cols - 1 ); ?>"><?php echo apply_filters( 'wpinv_print_cart_tax_label', '<strong>' . $tax_label . ':</strong>', $invoice ); ?></td>
-                        <td class="total"><?php _e( wpinv_tax( $invoice_id, true ) ) ?></td>
-                    </tr>
-                    <?php
-                    do_action( 'wpinv_display_after_tax', $invoice, $cols );
-                }
-
-                do_action( 'wpinv_display_before_total', $invoice, $cols );
-                ?>
-                <tr class="table-active row-total">
-                    <td class="rate" colspan="<?php echo ( $cols - 1 ); ?>"><?php echo apply_filters( 'wpinv_print_cart_total_label', '<strong>' . __( 'Total', 'invoicing' ) . ':</strong>', $invoice ); ?></td>
-                    <td class="total"><strong><?php _e( wpinv_payment_total( $invoice_id, true ) ) ?></strong></td>
-                </tr>
-                <?php
-                do_action( 'wpinv_display_after_total', $invoice, $cols );
-
-                do_action( 'wpinv_display_line_end', $invoice, $cols );
-            }
-        ?>
-        </tbody>
-    </table>
-    <?php
-    echo ob_get_clean();
+    wpinv_get_template( 'invoice/line-items.php', compact( 'invoice', 'columns' ) );
 }
+add_action( 'getpaid_invoice_line_items', 'wpinv_display_line_items', 10 );
 
 /**
  * @param WPInv_Invoice $invoice
  */
 function wpinv_display_invoice_notes( $invoice ) {
 
-    $notes = wpinv_get_invoice_notes( $invoice->ID, 'customer' );
+    // Retrieve the notes.
+    $notes = wpinv_get_invoice_notes( $invoice->get_id(), 'customer' );
 
+    // Abort if we have non.
     if ( empty( $notes ) ) {
         return;
     }
 
-    echo '<div class="wpi_invoice_notes_container">';
-    echo '<h2>' . __( 'Invoice Notes', 'invoicing' ) .'</h2>';
-    echo '<ul class="wpi_invoice_notes">';
+    // Echo the note.
+    echo '<div class="getpaid-invoice-notes-wrapper border position-relative w-100 mb-4 p-0">';
+    echo '<h3 class="getpaid-invoice-notes-title text-dark bg-light border-bottom m-0 d-block">' . __( 'Notes', 'invoicing' ) .'</h3>';
+    echo '<ul class="getpaid-invoice-notes mt-4 p-0">';
 
     foreach( $notes as $note ) {
         wpinv_get_invoice_note_line_item( $note );
@@ -1205,275 +1181,115 @@ function wpinv_display_invoice_notes( $invoice ) {
     echo '</ul>';
     echo '</div>';
 }
-add_action( 'wpinv_invoice_print_after_line_items', 'wpinv_display_invoice_notes' );
+add_action( 'getpaid_invoice_line_items', 'wpinv_display_invoice_notes', 60 );
 
-function wpinv_display_invoice_totals( $invoice_id = 0 ) {
-    $use_taxes = wpinv_use_taxes();
+/**
+ * Loads scripts on our invoice templates.
+ */
+function wpinv_display_style() {
 
-    do_action( 'wpinv_before_display_totals_table', $invoice_id ); 
-    ?>
-    <table class="table table-sm table-bordered table-responsive">
-        <tbody>
-            <?php do_action( 'wpinv_before_display_totals' ); ?>
-            <tr class="row-sub-total">
-                <td class="rate"><strong><?php _e( 'Sub Total', 'invoicing' ); ?></strong></td>
-                <td class="total"><strong><?php _e( wpinv_subtotal( $invoice_id, true ) ) ?></strong></td>
-            </tr>
-            <?php do_action( 'wpinv_after_display_totals' ); ?>
-            <?php if ( wpinv_discount( $invoice_id, false ) > 0 ) { ?>
-                <tr class="row-discount">
-                    <td class="rate"><?php wpinv_get_discount_label( wpinv_discount_code( $invoice_id ) ); ?></td>
-                    <td class="total"><?php echo wpinv_discount( $invoice_id, true, true ); ?></td>
-                </tr>
-            <?php do_action( 'wpinv_after_display_discount' ); ?>
-            <?php } ?>
-            <?php if ( $use_taxes ) { ?>
-            <tr class="row-tax">
-                <td class="rate"><?php _e( 'Tax', 'invoicing' ); ?></td>
-                <td class="total"><?php _e( wpinv_tax( $invoice_id, true ) ) ?></td>
-            </tr>
-            <?php do_action( 'wpinv_after_display_tax' ); ?>
-            <?php } ?>
-            <?php if ( $fees = wpinv_get_fees( $invoice_id ) ) { ?>
-                <?php foreach ( $fees as $fee ) { ?>
-                    <tr class="row-fee">
-                        <td class="rate"><?php echo $fee['label']; ?></td>
-                        <td class="total"><?php echo $fee['amount_display']; ?></td>
-                    </tr>
-                <?php } ?>
-            <?php } ?>
-            <tr class="table-active row-total">
-                <td class="rate"><strong><?php _e( 'Total', 'invoicing' ) ?></strong></td>
-                <td class="total"><strong><?php _e( wpinv_payment_total( $invoice_id, true ) ) ?></strong></td>
-            </tr>
-            <?php do_action( 'wpinv_after_totals' ); ?>
-        </tbody>
-
-    </table>
-
-    <?php do_action( 'wpinv_after_totals_table' );
-}
-
-function wpinv_display_payments_info( $invoice_id = 0, $echo = true ) {
-    $invoice = wpinv_get_invoice( $invoice_id );
-
-    ob_start();
-    do_action( 'wpinv_before_display_payments_info', $invoice_id );
-    if ( ( $gateway_title = $invoice->get_gateway_title() ) || $invoice->is_paid() || $invoice->is_refunded() ) {
-        ?>
-        <div class="wpi-payment-info">
-            <p class="wpi-payment-gateway"><?php echo wp_sprintf( __( 'Payment via %s', 'invoicing' ), $gateway_title ? $gateway_title : __( 'Manually', 'invoicing' ) ); ?></p>
-            <?php if ( $gateway_title ) { ?>
-            <p class="wpi-payment-transid"><?php echo wp_sprintf( __( 'Transaction ID: %s', 'invoicing' ), $invoice->get_transaction_id() ); ?></p>
-            <?php } ?>
-        </div>
-        <?php
+    // Make sure that all scripts have been loaded.
+    if ( ! did_action( 'wp_enqueue_scripts' ) ) {
+        do_action( 'wp_enqueue_scripts' );
     }
-    do_action( 'wpinv_after_display_payments_info', $invoice_id );
-    $outout = ob_get_clean();
 
-    if ( $echo ) {
-        echo $outout;
-    } else {
-        return $outout;
-    }
-}
+    // Register the invoices style.
+    wp_register_style( 'wpinv-single-style', WPINV_PLUGIN_URL . 'assets/css/invoice.css', array(), filemtime( WPINV_PLUGIN_DIR . 'assets/css/invoice.css' ) );
 
-function wpinv_display_style( $invoice ) {
-    wp_register_style( 'wpinv-single-style', WPINV_PLUGIN_URL . 'assets/css/invoice.css', array(), WPINV_VERSION );
-
+    // Load required styles
     wp_print_styles( 'open-sans' );
     wp_print_styles( 'wpinv-single-style' );
+    wp_print_styles( 'ayecode-ui' );
 
-    $custom_css = wpinv_get_option('template_custom_css');
-    if(isset($custom_css) && !empty($custom_css)){
+    // Maybe load custom css.
+    $custom_css = wpinv_get_option( 'template_custom_css' );
+
+    if ( isset( $custom_css ) && ! empty( $custom_css ) ) {
         $custom_css     = wp_kses( $custom_css, array( '\'', '\"' ) );
         $custom_css     = str_replace( '&gt;', '>', $custom_css );
         echo '<style type="text/css">';
         echo $custom_css;
         echo '</style>';
     }
+
 }
 add_action( 'wpinv_invoice_print_head', 'wpinv_display_style' );
 add_action( 'wpinv_invalid_invoice_head', 'wpinv_display_style' );
 
-function wpinv_checkout_billing_details() {
-    $invoice_id = (int)wpinv_get_invoice_cart_id();
-    if (empty($invoice_id)) {
-        wpinv_error_log( 'Invoice id not found', 'ERROR', __FILE__, __LINE__ );
-        return null;
-    }
 
-    $invoice = wpinv_get_invoice_cart( $invoice_id );
-    if (empty($invoice)) {
-        wpinv_error_log( 'Invoice not found', 'ERROR', __FILE__, __LINE__ );
-        return null;
-    }
-    $user_id        = $invoice->get_user_id();
-    $user_info      = $invoice->get_user_info();
-    $address_info   = wpinv_get_user_address( $user_id );
-
-    if ( empty( $user_info['first_name'] ) && !empty( $user_info['first_name'] ) ) {
-        $user_info['first_name'] = $user_info['first_name'];
-        $user_info['last_name'] = $user_info['last_name'];
-    }
-
-    if ( ( ( empty( $user_info['country'] ) && !empty( $address_info['country'] ) ) || ( empty( $user_info['state'] ) && !empty( $address_info['state'] ) && $user_info['country'] == $address_info['country'] ) ) ) {
-        $user_info['country']   = $address_info['country'];
-        $user_info['state']     = $address_info['state'];
-        $user_info['city']      = $address_info['city'];
-        $user_info['zip']       = $address_info['zip'];
-    }
-
-    $address_fields = array(
-        'user_id',
-        'company',
-        'vat_number',
-        'email',
-        'phone',
-        'address'
-    );
-
-    foreach ( $address_fields as $field ) {
-        if ( empty( $user_info[$field] ) ) {
-            $user_info[$field] = $address_info[$field];
-        }
-    }
-
-    return apply_filters( 'wpinv_checkout_billing_details', $user_info, $invoice );
-}
-
-function wpinv_admin_get_line_items($invoice = array()) {
-    $item_quantities    = wpinv_item_quantities_enabled();
-    $use_taxes          = wpinv_use_taxes();
-
-    if ( empty( $invoice ) ) {
-        return NULL;
-    }
-
-    $cart_items = $invoice->get_cart_details();
-    if ( empty( $cart_items ) ) {
-        return NULL;
-    }
-
-    ob_start();
-
-    do_action( 'wpinv_admin_before_line_items', $cart_items, $invoice );
-
-    $count = 0;
-    foreach ( $cart_items as $key => $cart_item ) {
-        $item_id    = $cart_item['id'];
-        $wpi_item   = $item_id > 0 ? new WPInv_Item( $item_id ) : NULL;
-
-        if (empty($wpi_item)) {
-            continue;
-        }
-
-        $item_price     = wpinv_price( wpinv_format_amount( $cart_item['item_price'] ), $invoice->get_currency() );
-        $quantity       = !empty( $cart_item['quantity'] ) && $cart_item['quantity'] > 0 ? $cart_item['quantity'] : 1;
-        $item_subtotal  = wpinv_price( wpinv_format_amount( $cart_item['subtotal'] ), $invoice->get_currency() );
-        $can_remove     = true;
-
-        $summary = apply_filters( 'wpinv_admin_invoice_line_item_summary', '', $cart_item, $wpi_item, $invoice );
-
-        $item_tax       = '';
-        $tax_rate       = '';
-        if ( $invoice->is_taxable() && $cart_item['tax'] > 0 && $cart_item['subtotal'] > 0 ) {
-            $item_tax = wpinv_price( wpinv_format_amount( $cart_item['tax'] ), $invoice->get_currency() );
-            $tax_rate = !empty( $cart_item['vat_rate'] ) ? $cart_item['vat_rate'] : ( $cart_item['tax'] / $cart_item['subtotal'] ) * 100;
-            $tax_rate = $tax_rate > 0 ? (float)wpinv_round_amount( $tax_rate, 4 ) : '';
-            $tax_rate = $tax_rate != '' ? ' <span class="tax-rate">(' . $tax_rate . '%)</span>' : '';
-        }
-        $line_item_tax = $item_tax . $tax_rate;
-
-        if ( $line_item_tax === '' ) {
-            $line_item_tax = 0; // Zero tax
-        }
-
-        $line_item = '<tr class="item item-' . ( ($count % 2 == 0) ? 'even' : 'odd' ) . '" data-item-id="' . $item_id . '">';
-            $line_item .= '<td class="id">' . $item_id . '</td>';
-            $line_item .= '<td class="title"><a href="' . get_edit_post_link( $item_id ) . '" target="_blank">' . $cart_item['name'] . '</a>' . wpinv_get_item_suffix( $wpi_item );
-            if ( $summary !== '' ) {
-                $line_item .= '<span class="meta">' . wpautop( wp_kses_post( $summary ) ) . '</span>';
-            }
-            $line_item .= '</td>';
-            $line_item .= '<td class="price">' . $item_price . '</td>';
-            
-            if ( $item_quantities ) {
-                if ( count( $cart_items ) == 1 && $quantity <= 1 ) {
-                    $can_remove = false;
-                }
-                $line_item .= '<td class="qty" data-quantity="' . $quantity . '">&nbsp;&times;&nbsp;' . $quantity . '</td>';
-            } else {
-                if ( count( $cart_items ) == 1 ) {
-                    $can_remove = false;
-                }
-            }
-            $line_item .= '<td class="total">' . $item_subtotal . '</td>';
-            
-            if ( $use_taxes ) {
-                $line_item .= '<td class="tax">' . $line_item_tax . '</td>';
-            }
-            $line_item .= '<td class="action">';
-            if ( !$invoice->is_paid() && !$invoice->is_refunded() ) {
-                $line_item .= '<i class="fa fa-remove wpinv-item-remove"></i>';
-            }
-            $line_item .= '</td>';
-        $line_item .= '</tr>';
-
-        echo apply_filters( 'wpinv_admin_line_item', $line_item, $cart_item, $invoice );
-
-        $count++;
-    } 
-
-    do_action( 'wpinv_admin_after_line_items', $cart_items, $invoice );
-
-    return ob_get_clean();
-}
-
+/**
+ * Displays the checkout page.
+ */
 function wpinv_checkout_form() {
-    global $wpi_checkout_id, $invoicing;
+    global $wpi_checkout_id;
 
-    // Set current invoice id.
-    $wpi_checkout_id = wpinv_get_invoice_cart_id();
-    $form_action     = esc_url( wpinv_get_checkout_uri() );
-    $payment_form    = wpinv_get_default_payment_form();
+    // Retrieve the current invoice.
+    $invoice_id = getpaid_get_current_invoice_id();
 
-    ob_start();
-	    do_action( 'wpinv_checkout_content_before' );
+    if ( empty( $invoice_id ) ) {
 
-        if ( wpinv_get_cart_contents() ) {
+        return aui()->alert(
+            array(
+                'type'    => 'warning',
+                'content' => __( 'Invalid invoice', 'invoicing' ),
+            )
+        );
 
-            // Get the form elements and items.
-	        $elements = $invoicing->form_elements->get_form_elements( $payment_form );
-	        $items    = $invoicing->form_elements->convert_checkout_items( wpinv_get_cart_contents(), wpinv_get_invoice_cart() );
-            ?>
-            <form class="wpinv_payment_form" action="<?php echo $form_action; ?>" method="POST">
-                <?php do_action( 'wpinv_main_checkout_form_top' ); ?>
-                <input type='hidden' name='form_id' value='<?php echo esc_attr( $payment_form ); ?>'/>
-                <input type='hidden' name='invoice_id' value='<?php echo esc_attr( $wpi_checkout_id ); ?>'/>
-                    <?php
-                        wp_nonce_field( 'wpinv_payment_form', 'wpinv_payment_form' );
-                        wp_nonce_field( 'vat_validation', '_wpi_nonce' );
+    }
 
-                        foreach ( $elements as $element ) {
-                            do_action( 'wpinv_frontend_render_payment_form_element', $element, $items, $payment_form );
-                            do_action( "wpinv_frontend_render_payment_form_{$element['type']}", $element, $items, $payment_form );
-                        }
-                    ?>
-                <div class='wpinv_payment_form_errors alert alert-danger d-none'></div>
-                <?php do_action( 'wpinv_main_checkout_form_bottom' ); ?>
-            </form>
-        <?php
+    // Can the user view this invoice?
+    if ( ! wpinv_user_can_view_invoice( $invoice_id ) ) {
 
-        } else {
-            do_action( 'wpinv_cart_empty' );
-        }
-        echo '</div><!--end #wpinv_checkout_wrap-->';
-	    do_action( 'wpinv_checkout_content_after' );
-        $content = ob_get_clean();
+        return aui()->alert(
+            array(
+                'type'    => 'warning',
+                'content' => __( 'You are not allowed to view this invoice', 'invoicing' ),
+            )
+        );
 
-		return str_replace( 'sr-only', '', $content );
+    }
+
+    // Ensure that it is not yet paid for.
+    $invoice = new WPInv_Invoice( $invoice_id );
+
+    // Maybe mark it as viewed.
+    getpaid_maybe_mark_invoice_as_viewed( $invoice );
+
+    if ( $invoice->is_paid() ) {
+
+        return aui()->alert(
+            array(
+                'type'    => 'success',
+                'content' => __( 'This invoice has already been paid.', 'invoicing' ),
+            )
+        );
+
+    }
+
+    // Set the global invoice id.
+    $wpi_checkout_id = $invoice_id;
+
+    // We'll display this invoice via the default form.
+    $form = new GetPaid_Payment_Form( wpinv_get_default_payment_form() );
+
+    if ( 0 == $form->get_id() ) {
+
+        return aui()->alert(
+            array(
+                'type'    => 'warning',
+                'content' => __( 'Error loading the payment form', 'invoicing' ),
+            )
+        );
+
+    }
+
+    // Set the invoice.
+    $form->invoice = $invoice;
+    $form->set_items( $invoice->get_items() );
+
+    // Generate the html.
+    return $form->get_html();
+
 }
 
 function wpinv_checkout_cart( $cart_details = array(), $echo = true ) {
@@ -1518,358 +1334,18 @@ function wpinv_empty_checkout_cart() {
 }
 add_action( 'wpinv_cart_empty', 'wpinv_empty_checkout_cart' );
 
-function wpinv_update_cart_button() {
-    if ( !wpinv_item_quantities_enabled() )
-        return;
-?>
-    <input type="submit" name="wpinv_update_cart_submit" class="wpinv-submit wpinv-no-js button" value="<?php _e( 'Update Cart', 'invoicing' ); ?>"/>
-    <input type="hidden" name="wpi_action" value="update_cart"/>
-<?php
-}
-
 function wpinv_checkout_cart_columns() {
     $default = 3;
     if ( wpinv_item_quantities_enabled() ) {
         $default++;
     }
-    
+
     if ( wpinv_use_taxes() ) {
         $default++;
     }
 
     return apply_filters( 'wpinv_checkout_cart_columns', $default );
 }
-
-function wpinv_display_cart_messages() {
-    global $wpi_session;
-
-    $messages = $wpi_session->get( 'wpinv_cart_messages' );
-
-    if ( $messages ) {
-        foreach ( $messages as $message_id => $message ) {
-            // Try and detect what type of message this is
-            if ( strpos( strtolower( $message ), 'error' ) ) {
-                $type = 'error';
-            } elseif ( strpos( strtolower( $message ), 'success' ) ) {
-                $type = 'success';
-            } else {
-                $type = 'info';
-            }
-
-            $classes = apply_filters( 'wpinv_' . $type . '_class', array( 'wpinv_errors', 'wpinv-alert', 'wpinv-alert-' . $type ) );
-
-            echo '<div class="' . implode( ' ', $classes ) . '">';
-                // Loop message codes and display messages
-                    echo '<p class="wpinv_error" id="wpinv_msg_' . $message_id . '">' . $message . '</p>';
-            echo '</div>';
-        }
-
-        // Remove all of the cart saving messages
-        $wpi_session->set( 'wpinv_cart_messages', null );
-    }
-}
-add_action( 'wpinv_before_checkout_cart', 'wpinv_display_cart_messages' );
-
-function wpinv_discount_field() {
-    if ( isset( $_GET['wpi-gateway'] ) && wpinv_is_ajax_disabled() ) {
-        return; // Only show before a payment method has been selected if ajax is disabled
-    }
-
-    if ( !wpinv_is_checkout() ) {
-        return;
-    }
-
-    if ( wpinv_has_active_discounts() && wpinv_get_cart_total() ) {
-    ?>
-    <div id="wpinv-discount-field" class="panel panel-default">
-        <div class="panel-body">
-            <p>
-                <label class="wpinv-label" for="wpinv_discount_code"><strong><?php _e( 'Discount', 'invoicing' ); ?></strong></label>
-                <span class="wpinv-description"><?php _e( 'Enter a discount code if you have one.', 'invoicing' ); ?></span>
-            </p>
-            <div class="form-group row">
-                <div class="col-sm-4">
-                    <input class="wpinv-input form-control" type="text" id="wpinv_discount_code" name="wpinv_discount_code" placeholder="<?php _e( 'Enter discount code', 'invoicing' ); ?>"/>
-                </div>
-                <div class="col-sm-3">
-                    <button id="wpi-apply-discount" type="button" class="btn btn-success btn-sm"><?php _e( 'Apply Discount', 'invoicing' ); ?></button>
-                </div>
-                <div style="clear:both"></div>
-                <div class="col-sm-12 wpinv-discount-msg">
-                    <div class="alert alert-success"><i class="fa fa-check-circle"></i><span class="wpi-msg"></span></div>
-                    <div class="alert alert-error"><i class="fa fa-warning"></i><span class="wpi-msg"></span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php
-    }
-}
-add_action( 'wpinv_after_checkout_cart', 'wpinv_discount_field', -10 );
-
-function wpinv_agree_to_terms_js() {
-    if ( wpinv_get_option( 'show_agree_to_terms', false ) ) {
-?>
-<script type="text/javascript">
-    jQuery(document).ready(function($){
-        $( document.body ).on('click', '.wpinv_terms_links', function(e) {
-            //e.preventDefault();
-            $('#wpinv_terms').slideToggle();
-            $('.wpinv_terms_links').toggle();
-            return false;
-        });
-    });
-</script>
-<?php
-    }
-}
-add_action( 'wpinv_checkout_form_top', 'wpinv_agree_to_terms_js' );
-
-function wpinv_payment_mode_select( $title ) {
-    $gateways = wpinv_get_enabled_payment_gateways( true );
-    $gateways = apply_filters( 'wpinv_payment_gateways_on_cart', $gateways );
-    $invoice = wpinv_get_invoice( 0, true );
-
-    do_action('wpinv_payment_mode_top');
-    $invoice_id = $invoice ? (int)$invoice->ID : 0;
-    $chosen_gateway = wpinv_get_chosen_gateway( $invoice_id );
-    ?>
-    <div id="wpinv_payment_mode_select" data-gateway="<?php echo $chosen_gateway; ?>" <?php echo ( ( $invoice && $invoice->is_free() ) ? 'style="display:none;" data-free="1"' : '' ); ?>>
-            <?php do_action( 'wpinv_payment_mode_before_gateways_wrap' ); ?>
-            <div id="wpinv-payment-mode-wrap" class="panel panel-default">
-                <div class="panel-heading wpi-payment_methods_title">
-                    <h6 class="panel-title"><?php echo sanitize_text_field( $title ); ?></h6>
-                </div>
-                <div class="panel-body wpi-payment_methods">
-                    <?php
-                    do_action( 'wpinv_payment_mode_before_gateways' );
-
-                    if ( !empty( $gateways ) ) {
-                        foreach ( $gateways as $gateway_id => $gateway ) {
-                            $checked       = checked( $gateway_id, $chosen_gateway, false );
-                            $button_label  = wpinv_get_gateway_button_label( $gateway_id );
-                            $gateway_label = wpinv_get_gateway_checkout_label( $gateway_id );
-                            $description   = wpinv_get_gateway_description( $gateway_id );
-                            ?>
-                            <div class="pt-2 pb-2">
-                                <div class="radio">
-                                    <label><input type="radio" data-button-text="<?php echo esc_attr( $button_label );?>" value="<?php echo esc_attr( $gateway_id ) ;?>" <?php echo $checked ;?> id="wpi_gateway_<?php echo esc_attr( $gateway_id );?>" name="wpi-gateway" class="wpi-pmethod"><?php echo esc_html( $gateway_label ); ?></label>
-                                </div>
-                                <div style="display:none;" class="payment_box wpi_gateway_<?php echo esc_attr( $gateway_id );?>" role="alert">
-                                    <?php if ( !empty( $description ) ) { ?>
-                                        <div class="wpi-gateway-desc"><?php _e( $description, 'invoicing' ); ?></div>
-                                    <?php } ?>
-                                    <?php do_action( 'wpinv_' . $gateway_id . '_cc_form', $invoice_id ) ;?>
-                                </div>
-                            </div>
-                            <?php
-                        }
-                    } else {
-                        echo '<div class="alert alert-danger">'. __( 'No payment gateway active', 'invoicing' ) .'</div>';
-                    }
-
-                    do_action( 'wpinv_payment_mode_after_gateways' );
-                    ?>
-                </div>
-            </div>
-            <?php do_action( 'wpinv_payment_mode_after_gateways_wrap' ); ?>
-    </div>
-    <?php
-    do_action('wpinv_payment_mode_bottom');
-}
-add_action( 'wpinv_payment_mode_select', 'wpinv_payment_mode_select' );
-
-function wpinv_checkout_billing_info() {
-    if ( wpinv_is_checkout() ) {
-        $billing_details    = wpinv_checkout_billing_details();
-        $selected_country   = !empty( $billing_details['country'] ) ? $billing_details['country'] : wpinv_default_billing_country();
-        ?>
-        <div id="wpinv-fields" class="clearfix">
-            <div id="wpi-billing" class="wpi-billing clearfix panel panel-default">
-                <div class="panel-heading"><h3 class="panel-title"><?php _e( 'Billing Details', 'invoicing' );?></h3></div>
-                <div id="wpinv-fields-box" class="panel-body">
-                    <?php do_action( 'wpinv_checkout_billing_fields_first', $billing_details ); ?>
-                    <p class="wpi-cart-field wpi-col2 wpi-colf">
-                        <label for="wpinv_first_name" class="wpi-label"><?php _e( 'First Name', 'invoicing' );?><?php if ( wpinv_get_option( 'fname_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php
-                        echo wpinv_html_text( array(
-                                'id'            => 'wpinv_first_name',
-                                'name'          => 'wpinv_first_name',
-                                'value'         => $billing_details['first_name'],
-                                'class'         => 'wpi-input form-control',
-                                'placeholder'   => __( 'First name', 'invoicing' ),
-                                'required'      => (bool)wpinv_get_option( 'fname_mandatory' ),
-                            ) );
-                        ?>
-                    </p>
-                    <p class="wpi-cart-field wpi-col2 wpi-coll">
-                        <label for="wpinv_last_name" class="wpi-label"><?php _e( 'Last Name', 'invoicing' );?><?php if ( wpinv_get_option( 'lname_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php
-                        echo wpinv_html_text( array(
-                                'id'            => 'wpinv_last_name',
-                                'name'          => 'wpinv_last_name',
-                                'value'         => $billing_details['last_name'],
-                                'class'         => 'wpi-input form-control',
-                                'placeholder'   => __( 'Last name', 'invoicing' ),
-                                'required'      => (bool)wpinv_get_option( 'lname_mandatory' ),
-                            ) );
-                        ?>
-                    </p>
-                    <p class="wpi-cart-field wpi-col2 wpi-colf">
-                        <label for="wpinv_address" class="wpi-label"><?php _e( 'Address', 'invoicing' );?><?php if ( wpinv_get_option( 'address_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php
-                        echo wpinv_html_text( array(
-                                'id'            => 'wpinv_address',
-                                'name'          => 'wpinv_address',
-                                'value'         => $billing_details['address'],
-                                'class'         => 'wpi-input form-control',
-                                'placeholder'   => __( 'Address', 'invoicing' ),
-                                'required'      => (bool)wpinv_get_option( 'address_mandatory' ),
-                            ) );
-                        ?>
-                    </p>
-                    <p class="wpi-cart-field wpi-col2 wpi-coll">
-                        <label for="wpinv_city" class="wpi-label"><?php _e( 'City', 'invoicing' );?><?php if ( wpinv_get_option( 'city_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php
-                        echo wpinv_html_text( array(
-                                'id'            => 'wpinv_city',
-                                'name'          => 'wpinv_city',
-                                'value'         => $billing_details['city'],
-                                'class'         => 'wpi-input form-control',
-                                'placeholder'   => __( 'City', 'invoicing' ),
-                                'required'      => (bool)wpinv_get_option( 'city_mandatory' ),
-                            ) );
-                        ?>
-                    </p>
-                    <p id="wpinv_country_box" class="wpi-cart-field wpi-col2 wpi-colf">
-                        <label for="wpinv_country" class="wpi-label"><?php _e( 'Country', 'invoicing' );?><?php if ( wpinv_get_option( 'country_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php echo wpinv_html_select( array(
-                            'options'          => wpinv_get_country_list(),
-                            'name'             => 'wpinv_country',
-                            'id'               => 'wpinv_country',
-                            'selected'         => $selected_country,
-                            'show_option_all'  => false,
-                            'show_option_none' => false,
-                            'class'            => 'wpi-input form-control wpi_select2',
-                            'placeholder'      => __( 'Choose a country', 'invoicing' ),
-                            'required'         => (bool)wpinv_get_option( 'country_mandatory' ),
-                        ) ); ?>
-                    </p>
-                    <p id="wpinv_state_box" class="wpi-cart-field wpi-col2 wpi-coll">
-                        <label for="wpinv_state" class="wpi-label"><?php _e( 'State / Province', 'invoicing' );?><?php if ( wpinv_get_option( 'state_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php
-                        $states = wpinv_get_country_states( $selected_country );
-                        if( !empty( $states ) ) {
-                            echo wpinv_html_select( array(
-                                'options'          => $states,
-                                'name'             => 'wpinv_state',
-                                'id'               => 'wpinv_state',
-                                'selected'         => $billing_details['state'],
-                                'show_option_all'  => false,
-                                'show_option_none' => false,
-                                'class'            => 'wpi-input form-control wpi_select2',
-                                'placeholder'      => __( 'Choose a state', 'invoicing' ),
-                                'required'         => (bool)wpinv_get_option( 'state_mandatory' ),
-                            ) );
-                        } else {
-                            echo wpinv_html_text( array(
-                                'name'          => 'wpinv_state',
-                                'value'         => $billing_details['state'],
-                                'id'            => 'wpinv_state',
-                                'class'         => 'wpi-input form-control',
-                                'placeholder'   => __( 'State / Province', 'invoicing' ),
-                                'required'      => (bool)wpinv_get_option( 'state_mandatory' ),
-                            ) );
-                        }
-                        ?>
-                    </p>
-                    <p class="wpi-cart-field wpi-col2 wpi-colf">
-                        <label for="wpinv_zip" class="wpi-label"><?php _e( 'ZIP / Postcode', 'invoicing' );?><?php if ( wpinv_get_option( 'zip_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php
-                        echo wpinv_html_text( array(
-                                'name'          => 'wpinv_zip',
-                                'value'         => $billing_details['zip'],
-                                'id'            => 'wpinv_zip',
-                                'class'         => 'wpi-input form-control',
-                                'placeholder'   => __( 'ZIP / Postcode', 'invoicing' ),
-                                'required'      => (bool)wpinv_get_option( 'zip_mandatory' ),
-                            ) );
-                        ?>
-                    </p>
-                    <p class="wpi-cart-field wpi-col2 wpi-coll">
-                        <label for="wpinv_phone" class="wpi-label"><?php _e( 'Phone', 'invoicing' );?><?php if ( wpinv_get_option( 'phone_mandatory' ) ) { echo '<span class="wpi-required">*</span>'; } ?></label>
-                        <?php
-                        echo wpinv_html_text( array(
-                                'id'            => 'wpinv_phone',
-                                'name'          => 'wpinv_phone',
-                                'value'         => $billing_details['phone'],
-                                'class'         => 'wpi-input form-control',
-                                'placeholder'   => __( 'Phone', 'invoicing' ),
-                                'required'      => (bool)wpinv_get_option( 'phone_mandatory' ),
-                            ) );
-                        ?>
-                    </p>
-                    <?php do_action( 'wpinv_checkout_billing_fields_last', $billing_details ); ?>
-                    <div class="clearfix"></div>
-                </div>
-            </div>
-            <?php do_action( 'wpinv_after_billing_fields', $billing_details ); ?>
-        </div>
-        <?php
-    }
-}
-add_action( 'wpinv_checkout_billing_info', 'wpinv_checkout_billing_info' );
-
-function wpinv_checkout_hidden_fields() {
-?>
-    <?php if ( is_user_logged_in() ) { ?>
-    <input type="hidden" name="wpinv_user_id" value="<?php echo get_current_user_id(); ?>"/>
-    <?php } ?>
-    <input type="hidden" name="wpi_action" value="payment" />
-<?php
-}
-
-function wpinv_checkout_button_purchase() {
-    ob_start();
-?>
-    <input type="submit" class="btn btn-success wpinv-submit" id="wpinv-payment-button" data-value="<?php esc_attr_e( 'Proceed to Pay', 'invoicing' ) ?>" name="wpinv_payment" value="<?php esc_attr_e( 'Proceed to Pay', 'invoicing' ) ?>"/>
-<?php
-    return apply_filters( 'wpinv_checkout_button_purchase', ob_get_clean() );
-}
-
-function wpinv_checkout_total() {
-    global $cart_total;
-?>
-<div id="wpinv_checkout_total" class="panel panel-info">
-    <div class="panel-body">
-    <?php
-    do_action( 'wpinv_purchase_form_before_checkout_total' );
-    ?>
-    <strong><?php _e( 'Invoice Total:', 'invoicing' ) ?></strong> <span class="wpinv-chdeckout-total"><?php echo $cart_total;?></span>
-    <?php
-    do_action( 'wpinv_purchase_form_after_checkout_total' );
-    ?>
-    </div>
-</div>
-<?php
-}
-add_action( 'wpinv_checkout_form_bottom', 'wpinv_checkout_total', 9998 );
-
-function wpinv_checkout_submit() {
-?>
-<div id="wpinv_purchase_submit" class="panel panel-success">
-    <div class="panel-body text-center">
-    <?php
-    do_action( 'wpinv_purchase_form_before_submit' );
-    wpinv_checkout_hidden_fields();
-    echo wpinv_checkout_button_purchase();
-    do_action( 'wpinv_purchase_form_after_submit' );
-    ?>
-    </div>
-</div>
-<?php
-}
-add_action( 'wpinv_checkout_form_bottom', 'wpinv_checkout_submit', 9999 );
 
 function wpinv_receipt_billing_address( $invoice_id = 0 ) {
     $invoice = wpinv_get_invoice( $invoice_id );
@@ -1913,51 +1389,22 @@ function wpinv_receipt_billing_address( $invoice_id = 0 ) {
     echo $output;
 }
 
+/**
+ * Filters the receipt page.
+ */
 function wpinv_filter_success_page_content( $content ) {
+
+    // Ensure this is our page.
     if ( isset( $_GET['payment-confirm'] ) && wpinv_is_success_page() ) {
-        if ( has_filter( 'wpinv_payment_confirm_' . sanitize_text_field( $_GET['payment-confirm'] ) ) ) {
-            $content = apply_filters( 'wpinv_payment_confirm_' . sanitize_text_field( $_GET['payment-confirm'] ), $content );
-        }
+
+        $gateway = sanitize_text_field( $_GET['payment-confirm'] );
+        return apply_filters( "wpinv_payment_confirm_$gateway", $content );
+
     }
 
     return $content;
 }
 add_filter( 'the_content', 'wpinv_filter_success_page_content', 99999 );
-
-function wpinv_receipt_actions( $invoice ) {
-    if ( !empty( $invoice ) ) {
-        $actions = array();
-
-        if ( wpinv_user_can_view_invoice( $invoice->ID ) ) {
-            $actions['print']   = array(
-                'url'  => $invoice->get_view_url( true ),
-                'name' => __( 'Print Invoice', 'invoicing' ),
-                'class' => 'btn-primary',
-            );
-        }
-
-        if ( is_user_logged_in() ) {
-            $actions['history'] = array(
-                'url'  => wpinv_get_history_page_uri(),
-                'name' => __( 'Invoice History', 'invoicing' ),
-                'class' => 'btn-warning',
-            );
-        }
-
-        $actions = apply_filters( 'wpinv_invoice_receipt_actions', $actions, $invoice );
-
-        if ( !empty( $actions ) ) {
-        ?>
-        <div class="wpinv-receipt-actions text-right">
-            <?php foreach ( $actions as $key => $action ) { $class = !empty($action['class']) ? sanitize_html_class( $action['class'] ) : ''; ?>
-            <a href="<?php echo esc_url( $action['url'] );?>" class="btn btn-sm <?php echo $class . ' ' . sanitize_html_class( $key );?>" <?php echo ( !empty($action['attrs']) ? $action['attrs'] : '' ) ;?>><?php echo esc_html( $action['name'] );?></a>
-            <?php } ?>
-        </div>
-        <?php
-        }
-    }
-}
-add_action( 'wpinv_receipt_start', 'wpinv_receipt_actions', -10, 1 );
 
 function wpinv_invoice_link( $invoice_id ) {
     $invoice = wpinv_get_invoice( $invoice_id );
@@ -1980,8 +1427,8 @@ function wpinv_invoice_subscription_details( $invoice ) {
         }
 
         $frequency = WPInv_Subscriptions::wpinv_get_pretty_subscription_frequency($subscription->period, $subscription->frequency);
-        $billing = wpinv_price(wpinv_format_amount($subscription->recurring_amount), wpinv_get_invoice_currency_code($subscription->parent_payment_id)) . ' / ' . $frequency;
-        $initial = wpinv_price(wpinv_format_amount($subscription->initial_amount), wpinv_get_invoice_currency_code($subscription->parent_payment_id));
+        $billing = wpinv_price(wpinv_format_amount($subscription->recurring_amount), $invoice->get_currency() ) . ' / ' . $frequency;
+        $initial = wpinv_price(wpinv_format_amount($subscription->initial_amount), $invoice->get_currency() );
 
         $payments = $subscription->get_child_payments();
         ?>
@@ -2029,8 +1476,8 @@ function wpinv_invoice_subscription_details( $invoice ) {
                     <tr>
                         <th scope="row"><?php echo $i;?></th>
                         <td><?php echo wpinv_invoice_link( $invoice_id ) ;?></td>
-                        <td><?php echo wpinv_get_invoice_date( $invoice_id ); ?></td>
-                        <td class="text-right"><?php echo wpinv_payment_total( $invoice_id, true ); ?></td>
+                        <td><?php echo$invoice->get_date_created(); ?></td>
+                        <td class="text-right"><?php echo wpinv_price( wpinv_format_amount( $invoice->get_total() ), $invoice->get_currency() ); ?></td>
                     </tr>
                     <?php $i++; } ?>
                 </tbody>
@@ -2040,6 +1487,7 @@ function wpinv_invoice_subscription_details( $invoice ) {
         <?php
     }
 }
+add_action( 'getpaid_invoice_line_items', 'wpinv_invoice_subscription_details', 20 );
 
 function wpinv_cart_total_label( $label, $invoice ) {
     if ( empty( $invoice ) ) {
@@ -2063,41 +1511,6 @@ add_filter( 'wpinv_cart_total_label', 'wpinv_cart_total_label', 10, 2 );
 add_filter( 'wpinv_email_cart_total_label', 'wpinv_cart_total_label', 10, 2 );
 add_filter( 'wpinv_print_cart_total_label', 'wpinv_cart_total_label', 10, 2 );
 
-add_action( 'wpinv_invoice_print_middle', 'wpinv_invoice_subscription_details', 10, 1 );
-
-function wpinv_invoice_print_description( $invoice ) {
-    if ( empty( $invoice ) ) {
-        return NULL;
-    }
-    if ( $description = wpinv_get_invoice_description( $invoice->ID ) ) {
-        ?>
-        <div class="row wpinv-lower">
-            <div class="col-sm-12 wpinv-description">
-                <?php echo wpautop( $description ); ?>
-            </div>
-        </div>
-        <?php
-    }
-}
-add_action( 'wpinv_invoice_print_middle', 'wpinv_invoice_print_description', 10.1, 1 );
-
-function wpinv_invoice_print_payment_info( $invoice ) {
-    if ( empty( $invoice ) ) {
-        return NULL;
-    }
-
-    if ( $payments_info = wpinv_display_payments_info( $invoice->ID, false ) ) {
-        ?>
-        <div class="row wpinv-payments">
-            <div class="col-sm-12">
-                <?php echo $payments_info; ?>
-            </div>
-        </div>
-        <?php 
-    }
-}
-// add_action( 'wpinv_invoice_print_after_line_items', 'wpinv_invoice_print_payment_info', 10, 1 );
-
 function wpinv_get_invoice_note_line_item( $note, $echo = true ) {
     if ( empty( $note ) ) {
         return NULL;
@@ -2119,16 +1532,37 @@ function wpinv_get_invoice_note_line_item( $note, $echo = true ) {
 
     ob_start();
     ?>
-    <li rel="<?php echo absint( $note->comment_ID ) ; ?>" class="<?php echo esc_attr( $note_classes ); ?>">
-        <div class="note_content">
+    <li rel="<?php echo absint( $note->comment_ID ) ; ?>" class="<?php echo esc_attr( $note_classes ); ?> mt-4 pl-3 pr-3">
+        <div class="note_content bg-light border position-relative p-4">
+
             <?php echo wpautop( wptexturize( wp_kses_post( $note->comment_content ) ) ); ?>
+
+            <?php if ( ! is_admin() ) : ?>
+                <em class="meta position-absolute form-text">
+                    <?php
+                        printf(
+                            __( '%1$s - %2$s at %3$s', 'invoicing' ),
+                            $note->comment_author,
+                            date_i18n( get_option( 'date_format' ), strtotime( $note->comment_date ) ),
+                            date_i18n( get_option( 'time_format' ), strtotime( $note->comment_date ) )
+                        );
+                    ?>
+                </em>
+            <?php endif; ?>
+
         </div>
-        <p class="meta">
-            <abbr class="exact-date" title="<?php echo $note->comment_date; ?>"><?php printf( __( '%1$s - %2$s at %3$s', 'invoicing' ), $note->comment_author, date_i18n( get_option( 'date_format' ), strtotime( $note->comment_date ) ), date_i18n( get_option( 'time_format' ), strtotime( $note->comment_date ) ) ); ?></abbr>&nbsp;&nbsp;
-            <?php if ( is_admin() && ( $note->comment_author !== 'System' || wpinv_current_user_can_manage_invoicing() ) ) { ?>
-                <a href="#" class="delete_note"><?php _e( 'Delete note', 'invoicing' ); ?></a>
-            <?php } ?>
-        </p>
+
+        <?php if ( is_admin() ) : ?>
+
+            <p class="meta px-4 py-2">
+                <abbr class="exact-date" title="<?php echo esc_attr( $note->comment_date ); ?>"><?php printf( __( '%1$s - %2$s at %3$s', 'invoicing' ), $note->comment_author, date_i18n( get_option( 'date_format' ), strtotime( $note->comment_date ) ), date_i18n( get_option( 'time_format' ), strtotime( $note->comment_date ) ) ); ?></abbr>&nbsp;&nbsp;
+                <?php if ( $note->comment_author !== 'System' && wpinv_current_user_can_manage_invoicing() ) { ?>
+                    <a href="#" class="delete_note"><?php _e( 'Delete note', 'invoicing' ); ?></a>
+                <?php } ?>
+            </p>
+
+        <?php endif; ?>
+        
     </li>
     <?php
     $note_content = ob_get_clean();
@@ -2147,7 +1581,7 @@ function wpinv_invalid_invoice_content() {
     $invoice = wpinv_get_invoice( $post->ID );
 
     $error = __( 'This invoice is only viewable by clicking on the invoice link that was sent to you via email.', 'invoicing' );
-    if ( !empty( $invoice->ID ) && $invoice->has_status( array_keys( wpinv_get_invoice_statuses() ) ) ) {
+    if ( !empty( $invoice->get_id() ) && $invoice->has_status( array_keys( wpinv_get_invoice_statuses() ) ) ) {
         if ( is_user_logged_in() ) {
             if ( wpinv_require_login_to_checkout() ) {
                 if ( isset( $_GET['invoice_key'] ) && $_GET['invoice_key'] === $invoice->get_key() ) {
@@ -2174,30 +1608,6 @@ function wpinv_invalid_invoice_content() {
     <?php
 }
 add_action( 'wpinv_invalid_invoice_content', 'wpinv_invalid_invoice_content' );
-
-add_action( 'wpinv_checkout_billing_fields_last', 'wpinv_force_company_name_field');
-function wpinv_force_company_name_field(){
-    $invoice = wpinv_get_invoice_cart();
-    $user_id = wpinv_get_user_id( $invoice->ID );
-    $company = empty( $user_id ) ? "" : get_user_meta( $user_id, '_wpinv_company', true );
-    if ( 1 == wpinv_get_option( 'force_show_company' ) && !wpinv_use_taxes() ) {
-        ?>
-        <p class="wpi-cart-field wpi-col2 wpi-colf">
-            <label for="wpinv_company" class="wpi-label"><?php _e('Company Name', 'invoicing'); ?></label>
-            <?php
-            echo wpinv_html_text(array(
-                'id' => 'wpinv_company',
-                'name' => 'wpinv_company',
-                'value' => $company,
-                'class' => 'wpi-input form-control',
-                'placeholder' => __('Company name', 'invoicing'),
-                'required'      => true,
-            ));
-            ?>
-        </p>
-        <?php
-    }
-}
 
 /**
  * Function to get privacy policy text.
@@ -2314,24 +1724,16 @@ function wpinv_oxygen_fix_conflict() {
 
 /**
  * Helper function to display a payment form on the frontend.
+ * 
+ * @param GetPaid_Payment_Form $form
  */
 function getpaid_display_payment_form( $form ) {
-    global $invoicing;
 
-    // Ensure that it is published.
-	if ( 'publish' != get_post_status( $form ) ) {
-		return aui()->alert(
-			array(
-				'type'    => 'warning',
-				'content' => __( 'This payment form is no longer active', 'invoicing' ),
-			)
-		);
-	}
+    if ( is_numeric( $form ) ) {
+        $form = new GetPaid_Payment_Form( $form );
+    }
 
-    // Get the form.
-    $form = new GetPaid_Payment_Form( $form );
-    $html = wpinv_get_template_html( 'payment-forms/form.php', compact( 'form' ) );
-    return str_replace( 'sr-only', '', $html );
+    $form->display();
 
 }
 
@@ -2506,14 +1908,16 @@ function getpaid_get_payment_button( $label, $form = null, $items = null, $invoi
  * @param WPInv_Invoice $invoice
  */
 function getpaid_the_invoice_description( $invoice ) {
-    if ( empty( $invoice->description ) ) {
+    $description = $invoice->get_description();
+
+    if ( empty( $description ) ) {
         return;
     }
 
-    $description = wp_kses_post( $invoice->description );
-    echo "<div style='color: #616161; font-size: 90%; margin-bottom: 20px;'><em>$description</em></div>";
+    $description = wp_kses_post( $description );
+    echo "<small class='getpaid-invoice-description text-dark p-2 form-text'><em>$description</em></small>";
 }
-add_action( 'wpinv_invoice_print_before_line_items', 'getpaid_the_invoice_description' );
+add_action( 'getpaid_invoice_line_items', 'getpaid_the_invoice_description', 100 );
 
 /**
  * Render element on a form.
@@ -2556,3 +1960,23 @@ function getpaid_payment_form_element( $element, $form ) {
     echo '</div>';
 }
 add_action( 'getpaid_payment_form_element', 'getpaid_payment_form_element', 10, 2 );
+
+/**
+ * Shows a list of gateways that support recurring payments.
+ */
+function wpinv_get_recurring_gateways_text() {
+    $gateways = array();
+
+    foreach ( wpinv_get_payment_gateways() as $key => $gateway ) {
+        if ( wpinv_gateway_support_subscription( $key ) ) {
+            $gateways[] = sanitize_text_field( $gateway['admin_label'] );
+        }
+    }
+
+    if ( empty( $gateways ) ) {
+        return "<span class='form-text text-danger'>" . __( 'No active gateways support subscription payments.', 'invoicing' ) ."</span>";
+    }
+
+    return "<span class='form-text text-muted'>" . wp_sprintf( __( 'Subscription payments only supported by: %s', 'invoicing' ), implode( ', ', $gateways ) ) ."</span>";
+
+}

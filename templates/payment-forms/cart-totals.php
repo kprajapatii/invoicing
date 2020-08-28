@@ -13,11 +13,12 @@ defined( 'ABSPATH' ) || exit;
 $totals = apply_filters(
     'getpaid_payment_form_cart_table_totals',
     array(
+        'subtotal' => __( 'Subtotal', 'invoicing' ),
         'tax'      => __( 'Tax', 'invoicing' ),
         'discount' => __( 'Discount', 'invoicing' ),
-        'subtotal' => __( 'Subtotal', 'invoicing' ),
         'total'    => __( 'Total', 'invoicing' ),
-    )
+    ),
+    $form
 );
 
 if ( ! wpinv_use_taxes() && isset( $totals['tax'] ) ) {
@@ -86,7 +87,7 @@ foreach ( $form->get_items() as $item ) {
 
                         // Total.
                         if ( 'total' == $key ) {
-                            echo wpinv_price( wpinv_format_amount( $discount ) );
+                            echo wpinv_price( wpinv_format_amount( $total ) );
                         }
                     ?>
                 </div>
