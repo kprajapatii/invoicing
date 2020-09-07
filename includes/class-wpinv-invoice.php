@@ -2815,7 +2815,9 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @param  string $value transaction id.
 	 */
 	public function set_transaction_id( $value ) {
-		$this->set_prop( 'transaction_id', $value );
+		if ( ! empty( $value ) ) {
+			$this->set_prop( 'transaction_id', $value );
+		}
     }
 
     /**
@@ -2937,6 +2939,14 @@ class WPInv_Invoice extends GetPaid_Data {
 	public function is_refunded() {
         $is_refunded = $this->has_status( 'wpi-refunded' );
         return apply_filters( 'wpinv_invoice_is_refunded', $is_refunded, $this );
+	}
+
+	/**
+     * Checks if the invoice is held.
+     */
+	public function is_held() {
+        $is_held = $this->has_status( 'wpi-onhold' );
+        return apply_filters( 'wpinv_invoice_is_held', $is_held, $this );
 	}
 
 	/**
