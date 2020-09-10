@@ -292,7 +292,7 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @return array
 	 */
 	public function get_all_statuses() {
-		
+
 		$statuses = wpinv_get_invoice_statuses( true, true, $this );
 
 		// For backwards compatibility.
@@ -1382,6 +1382,16 @@ class WPInv_Invoice extends GetPaid_Data {
 	public function get_total() {
 		$total = $this->is_renewal() ? $this->get_recurring_total() : $this->get_initial_total();
 		return apply_filters( 'getpaid_get_invoice_total_amount', $total, $this  );
+	}
+	
+	/**
+	 * Get the invoice totals.
+	 *
+	 * @since 1.0.19
+     * @return float
+	 */
+	public function get_totals() {
+		return $this->totals;
     }
 
     /**
@@ -3066,10 +3076,18 @@ class WPInv_Invoice extends GetPaid_Data {
     /**
      * Adds an item to the invoice.
      *
-     * @param GetPaid_Form_Item $item
+     * @param GetPaid_Form_Item|array $item
      * @return WP_Error|Bool
      */
     public function add_item( $item ) {
+
+		if ( is_array( $item ) ) {
+			$item = $this->process_array_item( $item );
+		}
+
+		if ( is_numeric( $item ) ) {
+			$item = new GetPaid_Form_Item( $item );
+		}
 
         // Make sure that it is available for purchase.
 		if ( $item->get_id() > 0 && ! $item->can_purchase() ) {
@@ -3096,7 +3114,39 @@ class WPInv_Invoice extends GetPaid_Data {
 
         $this->set_prop( 'items', $items );
 		return true;
-    }
+	}
+	
+	/**
+	 * Converts an array to an item.
+	 *
+	 * @since 1.0.19
+	 * @return GetPaid_Form_Item
+	 */
+	protected function process_array_item( $array ) {
+
+		$item_id = isset( $array['item_id'] ) ? $array['item_id'] : 0;
+		$item    = new GetPaid_Form_Item( $item_id );
+
+		// Set item data.
+		foreach( array( 'name', 'price', 'description' ) as $key ) {
+			if ( isset( $array[ "item_$key" ] ) ) {
+				$method = "set_$key";
+				$item->$method( $array[ "item_$key" ] );
+			}
+		}
+
+		if ( isset( $array['quantity'] ) ) {
+			$item->set_quantity( $array['quantity'] );
+		}
+
+		// Set item meta.
+		if ( isset( $array['meta'] ) && is_array( $array['meta'] ) ) {
+			$item->set_item_meta( $array['meta'] );
+		}
+
+		return $item;
+
+	}
 
     /**
 	 * Retrieves a specific item.
@@ -3144,7 +3194,7 @@ class WPInv_Invoice extends GetPaid_Data {
 
             $amount = $fees[ $fee ]['amount'] += $amount;
 			$fees[ $fee ] = array(
-                'amount'    => $amount,
+				'amount'    => $amount,
                 'recurring' => (bool) $recurring,
             );
 
@@ -3477,52 +3527,30 @@ class WPInv_Invoice extends GetPaid_Data {
      * Adds a note to an invoice.
      *
      * @param string $note The note being added.
+	 * @return int|false The new note's ID on success, false on failure.
      *
      */
     public function add_note( $note = '', $customer_type = false, $added_by_user = false, $system = false ) {
 
         // Bail if no note specified or this invoice is not yet saved.
-        if ( ! $note || $this->get_id() == 0 ) {
+        if ( ! $note || $this->get_id() == 0 || ( ! is_user_logged_in() && ! $system ) ) {
             return false;
         }
 
-        if ( ( ( is_user_logged_in() && wpinv_current_user_can_manage_invoicing() ) || $added_by_user ) && !$system ) {
-            $user                 = get_user_by( 'id', get_current_user_id() );
-            $comment_author       = $user->display_name;
-            $comment_author_email = $user->user_email;
-        } else {
-            $comment_author       = 'System';
-            $comment_author_email = 'system@';
-            $comment_author_email .= isset( $_SERVER['HTTP_HOST'] ) ? str_replace( 'www.', '', $_SERVER['HTTP_HOST'] ) : 'noreply.com';
-            $comment_author_email = sanitize_email( $comment_author_email );
-        }
+		// If this is an admin comment or it has been added by the user.
+		if ( is_user_logged_in() && ( wpinv_current_user_can_manage_invoicing() || $added_by_user ) ) {
+			$user         = get_user_by( 'id', get_current_user_id() );
+            $author       = $user->display_name;
+            $author_email = $user->user_email;
+		} 
 
-        do_action( 'wpinv_pre_insert_invoice_note', $this->get_id(), $note, $customer_type );
+		if ( $system ) {
+			$author       = 'System';
+            $author_email = 'bot@wpinvoicing.com';
+		}
 
-        $note_id = wp_insert_comment( wp_filter_comment( array(
-            'comment_post_ID'      => $this->get_id(),
-            'comment_content'      => $note,
-            'comment_agent'        => 'GetPaid',
-            'user_id'              => is_admin() ? get_current_user_id() : 0,
-            'comment_date'         => current_time( 'mysql' ),
-            'comment_date_gmt'     => current_time( 'mysql', 1 ),
-            'comment_approved'     => 1,
-            'comment_parent'       => 0,
-            'comment_author'       => $comment_author,
-            'comment_author_IP'    => wpinv_get_ip(),
-            'comment_author_url'   => '',
-            'comment_author_email' => $comment_author_email,
-            'comment_type'         => 'wpinv_note'
-        ) ) );
+		return getpaid_notes()->add_invoice_note( $this, $note, $author, $author_email, $customer_type );
 
-        do_action( 'wpinv_insert_payment_note', $note_id, $this->get_id(), $note );
-
-        if ( $customer_type ) {
-            add_comment_meta( $note_id, '_wpi_customer_note', 1 );
-            do_action( 'wpinv_new_customer_note', array( 'invoice_id' => $this->get_id(), 'user_note' => $note ) );
-        }
-
-        return $note_id;
 	}
 
 	/**
