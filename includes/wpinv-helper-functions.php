@@ -894,7 +894,7 @@ function getpaid_format_date( $date ) {
     }
 
 
-    return date_i18n( get_option( 'date_format' ), strtotime( $date ) );
+    return date_i18n( /** @scrutinizer ignore-type */get_option( 'date_format' ), strtotime( $date ) );
 
 }
 
@@ -972,6 +972,19 @@ function getpaid_notes() {
  */
 function getpaid_get_subscriptions( $args = array(), $return = 'results' ) {
 
+    $args = wp_parse_args( $args, array() );
+
+    // Do not retrieve all fields if we just want the count.
+    if ( 'count' == $return ) {
+        $args['fields'] = 'id';
+        $args['number'] = 1;
+    }
+
+    // Do not count all matches if we just want the results.
+    if ( 'results' == $return ) {
+        $args['count_total'] = false;
+    }
+
     $query = new GetPaid_Subscriptions_Query( $args );
 
     if ( 'results' == $return ) {
@@ -983,4 +996,98 @@ function getpaid_get_subscriptions( $args = array(), $return = 'results' ) {
     }
 
     return $query;
+}
+
+/**
+ * Returns an array of valid subscription statuses.
+ * 
+ * @return array
+ */
+function getpaid_get_subscription_statuses() {
+
+    return apply_filters(
+        'getpaid_get_subscription_statuses',
+        array(
+            'pending'    => __( 'Pending', 'invoicing' ),
+            'trialling'  => __( 'Trialing', 'invoicing' ),
+            'active'     => __( 'Active', 'invoicing' ),
+            'failing'    => __( 'Failing', 'invoicing' ),
+            'expired'    => __( 'Expired', 'invoicing' ),
+            'completed'  => __( 'Complete', 'invoicing' ),
+            'cancelled'  =>__( 'Cancelled', 'invoicing' ),
+        )
+    );
+
+}
+
+/**
+ * Returns a subscription status label
+ * 
+ * @return string
+ */
+function getpaid_get_subscription_status_label( $status ) {
+    $statuses = getpaid_get_subscription_statuses();
+    return isset( $statuses[ $status ] ) ? $statuses[ $status ] : ucfirst( $status );
+}
+
+/**
+ * Returns an array of valid subscription status classes.
+ * 
+ * @return array
+ */
+function getpaid_get_subscription_status_classes() {
+
+    return apply_filters(
+        'getpaid_get_subscription_status_classes',
+        array(
+            'pending'    => 'getpaid-item-status-pending',
+            'trialling'  => 'getpaid-item-status-trial',
+            'active'     => 'getpaid-item-status-info',
+            'failing'    => 'getpaid-item-status-failing',
+            'expired'    => 'getpaid-item-status-expired',
+            'completed'  => 'getpaid-item-status-success',
+            'cancelled'  => 'getpaid-item-status-canceled',
+        )
+    );
+
+}
+
+/**
+ * Counts subscriptions in each status.
+ * 
+ * @return array
+ */
+function getpaid_get_subscription_status_counts( $args = array() ) {
+
+    $statuses = array_keys( getpaid_get_subscription_statuses() );
+    $counts   = array();
+
+    foreach ( $statuses as $status ) {
+        $_args             = wp_parse_args( "status=$status", $args );
+        $counts[ $status ] = getpaid_get_subscriptions( $_args, 'count' );
+    }
+
+    return $counts;
+
+}
+
+/**
+ * Returns a period label..
+ * 
+ * @return string
+ */
+function getpaid_get_subscription_period_label( $period ) {
+
+    $periods = array(
+        'd'     => __( 'day', 'invoicing' ),
+        'day'   => __( 'day', 'invoicing' ),
+        'w'     => __( 'week', 'invoicing' ),
+        'week'  => __( 'week', 'invoicing' ),
+        'm'     => __( 'month', 'invoicing' ),
+        'month' => __( 'month', 'invoicing' ),
+        'y'     => __( 'year', 'invoicing' ),
+        'year'  => __( 'year', 'invoicing' ),
+    );
+
+    return isset( $periods[ $period ] ) ? strtolower( $periods[ $period ] ) : strtolower( $periods['d'] );
 }

@@ -201,19 +201,15 @@ class WPInv_Invoice extends GetPaid_Data {
 
 		// Maybe retrieve from the cache.
 		$invoice_id   = wp_cache_get( $value, "getpaid_invoice_{$field}s_to_invoice_ids" );
-		if ( ! empty( $invoice_id ) ) {
+		if ( false !== $invoice_id ) {
 			return $invoice_id;
 		}
 
         // Fetch from the db.
         $table       = $wpdb->prefix . 'getpaid_invoices';
-        $invoice_id  = $wpdb->get_var(
+        $invoice_id  = (int) $wpdb->get_var(
             $wpdb->prepare( "SELECT `post_id` FROM $table WHERE `$field`=%s LIMIT 1", $value )
         );
-
-		if ( empty( $invoice_id ) ) {
-			return 0;
-		}
 
 		// Update the cache with our data
 		wp_cache_set( $value, $invoice_id, "getpaid_invoice_{$field}s_to_invoice_ids" );
@@ -1834,7 +1830,6 @@ class WPInv_Invoice extends GetPaid_Data {
 			unset( $statuses[ 'draft' ] );
 		}
 
-
 		$this->set_prop( 'status', $new_status );
 
 		// If setting the status, ensure it's set to a valid status.
@@ -1851,7 +1846,7 @@ class WPInv_Invoice extends GetPaid_Data {
 			}
 
 			// Paid - Renewal (i.e when duplicating a parent invoice )
-			if ( $new_status == 'wpi-renewal' && $old_status == 'publish' ) {
+			if ( $new_status == 'wpi-pending' && $old_status == 'publish' && ! $this->get_id() ) {
 				$old_status = 'wpi-pending';
 			}
 
