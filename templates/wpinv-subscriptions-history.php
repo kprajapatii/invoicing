@@ -24,6 +24,7 @@ $subs = $db->get_subscriptions($args);
 ?>
 <?php
 do_action('wpinv_subscriptions_front_notices');
+wpinv_print_errors();
 do_action('wpinv_before_user_subscriptions', $subs);
 if ($subs) { ?>
     <table class="table table-bordered table-hover table-responsive wpi-user-subscriptions">
@@ -56,7 +57,7 @@ if ($subs) { ?>
                     $initial = wpinv_price(wpinv_format_amount($sub->initial_amount), wpinv_get_invoice_currency_code($sub->parent_payment_id));
                     printf(_x('%s then %s', 'Initial subscription amount then billing cycle and amount', 'invoicing'), $initial, $billing); ?>
                 </td>
-                <td><?php echo $sub->get_times_billed() . ' / ' . (($sub->bill_times == 0) ? 'Until Cancelled' : $sub->bill_times); ?></td>
+                <td><?php echo $sub->get_times_billed() . ' / ' . (($sub->bill_times == 0) ? __( 'Until Cancelled', 'invoicing' ) : $sub->bill_times); ?></td>
                 <td><?php echo $sub->get_status_label_html(); ?></td>
                 <td><a href="<?php echo get_permalink($invoice); ?>" target="_blank">#<?php echo $invoice; ?></a></td>
                 <td><?php echo get_the_title($sub->product_id); ?></td>

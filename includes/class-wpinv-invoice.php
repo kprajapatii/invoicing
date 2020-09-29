@@ -80,6 +80,7 @@ class WPInv_Invoice extends GetPaid_Data {
         'currency'             => '',
         'disable_taxes'        => false,
 		'subscription_id'      => null,
+		'remote_subscription_id' => null,
 		'is_viewed'            => false,
 		'email_cc'             => '',
 		'template'             => 'quantity', // hours, amount only
@@ -539,15 +540,29 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @return string
 	 */
 	public function get_number( $context = 'view' ) {
-        $number = $this->get_prop( 'number', $context );
+		$number = $this->get_prop( 'number', $context );
 
-        if ( empty( $number ) ) {
-            $number = $this->generate_number();
-            $this->set_number( $number );
-        }
+		if ( empty( $number ) ) {
+			$number = $this->generate_number();
+			$this->set_number( $this->generate_number() );
+		}
 
 		return $number;
     }
+
+	/**
+	 * Set the invoice number.
+	 *
+	 * @since 1.0.19
+	 */
+	public function maybe_set_number() {
+        $number = $this->get_number();
+
+        if ( empty( $number ) || $this->get_id() == $number ) {
+			$this->set_number( $this->generate_number() );
+        }
+
+	}
 
     /**
 	 * Get the invoice key.
@@ -557,14 +572,22 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @return string
 	 */
 	public function get_key( $context = 'view' ) {
-        $key = $this->get_prop( 'key', $context );
+        return $this->get_prop( 'key', $context );
+	}
+
+	/**
+	 * Set the invoice key.
+	 *
+	 * @since 1.0.19
+	 */
+	public function maybe_set_key() {
+        $key = $this->get_key();
 
         if ( empty( $key ) ) {
             $key = $this->generate_key( $this->get_type() . '_' );
             $this->set_key( $key );
         }
 
-		return $key;
     }
 
     /**
@@ -581,20 +604,8 @@ class WPInv_Invoice extends GetPaid_Data {
 	/**
 	 * @deprecated
 	 */
-	public function get_invoice_quote_type( $post_id ) {
-        if ( empty( $post_id ) ) {
-            return '';
-        }
-
-        $type = get_post_type( $post_id );
-
-        if ( 'wpi_invoice' === $type ) {
-            $post_type = __('Invoice', 'invoicing');
-        } else{
-            $post_type = __('Quote', 'invoicing');
-        }
-
-        return apply_filters('get_invoice_type_label', $post_type, $post_id);
+	public function get_invoice_quote_type() {
+        ucfirst( $this->get_type() );
     }
 
     /**
@@ -627,12 +638,13 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @return string
 	 */
 	public function get_path( $context = 'view' ) {
-        $path = $this->get_prop( 'path', $context );
+        $path   = $this->get_prop( 'path', $context );
+		$prefix = wpinv_post_name_prefix( $this->get_post_type() );
 
-        if ( empty( $path ) ) {
-            $prefix = apply_filters( 'wpinv_post_name_prefix', 'inv-', $this->post_type );
-            $path   = sanitize_title( $prefix . $this->get_id() );
-        }
+		if ( 0 !== strpos( $path, $prefix ) ) {
+			$path = sanitize_title(  $prefix . $this->get_id()  );
+			$this->set_path( $path );
+		}
 
 		return $path;
     }
@@ -1626,14 +1638,25 @@ class WPInv_Invoice extends GetPaid_Data {
     }
 
     /**
-	 * Retrieves the remote subscription id for an invoice.
+	 * Retrieves the subscription id for an invoice.
 	 *
 	 * @since 1.0.19
 	 * @param  string $context View or edit context.
 	 * @return int
 	 */
     public function get_subscription_id( $context = 'view' ) {
-        $subscription_id = $this->get_prop( 'subscription_id', $context );
+		return $this->is_renewal() ? $this->get_parent()->get_subscription_id( $context ) : $this->get_prop( 'subscription_id', $context );
+	}
+
+	/**
+	 * Retrieves the remote subscription id for an invoice.
+	 *
+	 * @since 1.0.19
+	 * @param  string $context View or edit context.
+	 * @return int
+	 */
+    public function get_remote_subscription_id( $context = 'view' ) {
+        $subscription_id = $this->get_prop( 'remote_subscription_id', $context );
 
         if ( empty( $subscription_id ) && $this->is_renewal() ) {
             $parent = $this->get_parent();
@@ -1679,7 +1702,8 @@ class WPInv_Invoice extends GetPaid_Data {
         $cart_details = array();
 
         foreach ( $items as $item_id => $item ) {
-            $cart_details[] = $item->prepare_data_for_saving();
+			$item->invoice_id = $this->get_id();
+            $cart_details[]   = $item->prepare_data_for_saving();
         }
 
         return $cart_details;
@@ -2865,6 +2889,16 @@ class WPInv_Invoice extends GetPaid_Data {
 	 */
 	public function set_subscription_id( $value ) {
 		$this->set_prop( 'subscription_id', $value );
+	}
+	
+	/**
+	 * Set the remote subscription id.
+	 *
+	 * @since 1.0.19
+	 * @param  string $value subscription id.
+	 */
+	public function set_remote_subscription_id( $value ) {
+		$this->set_prop( 'remote_subscription_id', $value );
     }
 
     /*
@@ -3544,16 +3578,14 @@ class WPInv_Invoice extends GetPaid_Data {
             return false;
         }
 
+		$author       = 'System';
+		$author_email = 'bot@wpinvoicing.com';
+
 		// If this is an admin comment or it has been added by the user.
-		if ( is_user_logged_in() && ( wpinv_current_user_can_manage_invoicing() || $added_by_user ) ) {
+		if ( is_user_logged_in() && ( ! $system || $added_by_user ) ) {
 			$user         = get_user_by( 'id', get_current_user_id() );
             $author       = $user->display_name;
             $author_email = $user->user_email;
-		} 
-
-		if ( $system ) {
-			$author       = 'System';
-            $author_email = 'bot@wpinvoicing.com';
 		}
 
 		return getpaid_notes()->add_invoice_note( $this, $note, $author, $author_email, $customer_type );
@@ -3576,13 +3608,12 @@ class WPInv_Invoice extends GetPaid_Data {
     public function generate_number() {
         $number = $this->get_id();
 
-        if ( $this->has_status( 'auto-draft' ) && wpinv_sequential_number_active( $this->post_type ) ) {
-            $number = wpinv_get_next_invoice_number( $this->post_type );
+        if ( wpinv_sequential_number_active( $this->get_post_type() ) ) {
+            $number = wpinv_get_next_invoice_number( $this->get_post_type() );
         }
 
-		$number = wpinv_format_invoice_number( $number, $this->post_type );
+		return wpinv_format_invoice_number( $number, $this->get_post_type() );
 
-		return $number;
 	}
 
 	/**
@@ -3598,7 +3629,7 @@ class WPInv_Invoice extends GetPaid_Data {
 			try {
 
 				// Fire a hook for the status change.
-				do_action( 'getpaid_invoice_status_' . $status_transition['to'], $this->get_id(), $this, $status_transition );
+				do_action( 'getpaid_invoice_status_' . $status_transition['to'], $this, $status_transition );
 
 				// @deprecated this is deprecated and will be removed in the future.
 				do_action( 'wpinv_status_' . $status_transition['to'], $this->get_id(), $status_transition['from'] );
@@ -3609,8 +3640,8 @@ class WPInv_Invoice extends GetPaid_Data {
 					$transition_note = sprintf( __( 'Status changed from %1$s to %2$s.', 'invoicing' ), wpinv_status_nicename( $status_transition['from'] ), wpinv_status_nicename( $status_transition['to'] ) );
 
 					// Fire another hook.
-					do_action( 'getpaid_invoice_status_' . $status_transition['from'] . '_to_' . $status_transition['to'], $this->get_id(), $this );
-					do_action( 'getpaid_invoice_status_changed', $this->get_id(), $status_transition['from'], $status_transition['to'], $this );
+					do_action( 'getpaid_invoice_status_' . $status_transition['from'] . '_to_' . $status_transition['to'], $this );
+					do_action( 'getpaid_invoice_status_changed', $this, $status_transition['from'], $status_transition['to'] );
 
 					// @deprecated this is deprecated and will be removed in the future.
 					do_action( 'wpinv_status_' . $status_transition['from'] . '_to_' . $status_transition['to'], $this->get_id(), $status_transition['from'] );
@@ -3623,7 +3654,7 @@ class WPInv_Invoice extends GetPaid_Data {
 						in_array( $status_transition['from'], array( 'wpi-cancelled', 'wpi-pending', 'wpi-failed', 'wpi-refunded' ), true )
 						&& in_array( $status_transition['to'], array( 'publish', 'wpi-processing', 'wpi-renewal' ), true )
 					) {
-						do_action( 'getpaid_invoice_payment_status_changed', $this->get_id(), $this, $status_transition );
+						do_action( 'getpaid_invoice_payment_status_changed', $this, $status_transition );
 					}
 				} else {
 					/* translators: %s: new invoice status */
@@ -3772,9 +3803,20 @@ class WPInv_Invoice extends GetPaid_Data {
 	 */
 	public function save() {
 		$this->maybe_set_date_paid();
+		$this->maybe_set_key();
 		parent::save();
+		$this->clear_cache();
 		$this->status_transition();
 		return $this->get_id();
+	}
+
+	/**
+     * Clears the subscription's cache.
+     */
+    public function clear_cache() {
+		wp_cache_delete( $this->get_key(), 'getpaid_invoice_keys_to_invoice_ids' );
+		wp_cache_delete( $this->get_number(), 'getpaid_invoice_numbers_to_invoice_ids' );
+		wp_cache_delete( $this->get_transaction_id(), 'getpaid_invoice_transaction_ids_to_invoice_ids' );
 	}
 
 }
