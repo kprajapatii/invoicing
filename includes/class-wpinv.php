@@ -69,7 +69,7 @@ class WPInv_Plugin {
 
 	/**
 	 * Gets a custom data property.
-	 * 
+	 *
 	 * @param string $prop The prop to set.
 	 * @return mixed The value.
 	 */
@@ -105,6 +105,8 @@ class WPInv_Plugin {
 		$this->set( 'admin', new GetPaid_Admin() );
 		$this->set( 'subscriptions', new WPInv_Subscriptions() );
 		$this->set( 'invoice_emails', new GetPaid_Invoice_Notification_Emails() );
+		$this->set( 'subscription_emails', new GetPaid_Subscription_Notification_Emails() );
+		$this->set( 'daily_maintenace', new GetPaid_Daily_Maintenance() );
 
 	}
 
@@ -246,21 +248,6 @@ class WPInv_Plugin {
 		 */
 		if ( ! class_exists( 'WPInv_EUVat' ) ) {
 			require_once( WPINV_PLUGIN_DIR . 'includes/libraries/wpinv-euvat/class-wpinv-euvat.php' );
-		}
-
-		$gateways = array_keys( wpinv_get_enabled_payment_gateways() );
-		if ( !empty( $gateways ) ) {
-			foreach ( $gateways as $gateway ) {
-				if ( $gateway == 'manual' ) {
-					continue;
-				}
-
-				$gateway_file = WPINV_PLUGIN_DIR . 'includes/gateways/' . $gateway . '.php';
-
-				if ( file_exists( $gateway_file ) ) {
-					require_once( $gateway_file );
-				}
-			}
 		}
 
 		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {

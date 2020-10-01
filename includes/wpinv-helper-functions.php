@@ -893,9 +893,18 @@ function getpaid_format_date( $date ) {
         return '';
     }
 
-
     return date_i18n( /** @scrutinizer ignore-type */get_option( 'date_format' ), strtotime( $date ) );
 
+}
+
+/**
+ * Formats a date into the website's date setting.
+ *
+ * @return string
+ */
+function getpaid_format_date_value( $date, $default = "&mdash;" ) {
+    $date = getpaid_format_date( $date );
+    return empty( $date ) ? $default : $date;
 }
 
 /**
@@ -1091,27 +1100,31 @@ function getpaid_get_subscription_period_label( $period ) {
 }
 
 /**
+ * Returns an invoice subscription.
+ * 
+ * @param WPInv_Invoice $invoice
+ * @return WPInv_Subscription|false
+ */
+function getpaid_get_invoice_subscription( $invoice ) {
+    return getpaid_subscriptions()->get_invoice_subscription( $invoice );
+}
+
+/**
+ * Returns the subscriptions controller.
+ * 
+ * @return WPInv_Subscriptions
+ */
+function getpaid_subscriptions() {
+    return getpaid()->get( 'subscriptions' );
+}
+
+/**
  * Returns the main admin class.
  * 
  * @return GetPaid_Admin
  */
 function getpaid_admin() {
     return getpaid()->get( 'admin' );
-}
-
-/**
- * Formats a date into the website's date setting.
- *
- * @return string
- */
-function getpaid_format_date_value( $date, $default = "&mdash;" ) {
-
-    if ( empty( $date ) || '0000-00-00 00:00:00' == $date ) {
-        return $default;
-    }
-
-    return date_i18n( /** @scrutinizer ignore-type */get_option( 'date_format' ), strtotime( $date ) );
-
 }
 
 /**
