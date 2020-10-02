@@ -2980,7 +2980,7 @@ class WPInv_Invoice extends GetPaid_Data {
 		$needs_payment = ! $this->is_paid() && ! $this->is_refunded() && ! $this->is_free();
         return apply_filters( 'wpinv_needs_payment', $needs_payment, $this );
     }
-
+  
 	/**
      * Checks if the invoice is refunded.
      */
@@ -3648,10 +3648,18 @@ class WPInv_Invoice extends GetPaid_Data {
 
 					// Work out if this was for a payment, and trigger a payment_status hook instead.
 					if (
-						in_array( $status_transition['from'], array( 'wpi-cancelled', 'wpi-pending', 'wpi-failed', 'wpi-refunded' ), true )
+						in_array( $status_transition['from'], array( 'wpi-cancelled', 'wpi-pending', 'wpi-failed', 'wpi-refunded', 'wpi-onhold' ), true )
 						&& in_array( $status_transition['to'], array( 'publish', 'wpi-processing', 'wpi-renewal' ), true )
 					) {
 						do_action( 'getpaid_invoice_payment_status_changed', $this, $status_transition );
+					}
+
+					// Work out if this was for a payment reversal, and trigger a payment_status_reversed hook instead.
+					if (
+						in_array( $status_transition['from'], array( 'publish', 'wpi-processing', 'wpi-renewal' ), true )
+						&& in_array( $status_transition['to'], array( 'wpi-cancelled', 'wpi-pending', 'wpi-failed', 'wpi-refunded', 'wpi-onhold' ), true )
+					) {
+						do_action( 'getpaid_invoice_payment_status_reversed', $this, $status_transition );
 					}
 				} else {
 					/* translators: %s: new invoice status */
@@ -3772,7 +3780,7 @@ class WPInv_Invoice extends GetPaid_Data {
 
 			$_note = sprintf(
 				__( 'Paid via %s', 'invoicing' ),
-				$this->get_gateway_title() . empty( $note ) ? '' : " ($note)"
+				$this->get_gateway() . empty( $note ) ? '' : " ($note)"
 			);
 
 			if ( 'none' == $this->get_gateway() ) {
