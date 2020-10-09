@@ -63,16 +63,17 @@ class GetPaid_Admin {
 	 *
 	 */
 	public function enqeue_scripts() {
-        global $current_screen;
+        global $current_screen, $pagenow;
 
-        $page = isset( $_GET['page'] ) ? $_GET['page'] : '';
+		$page    = isset( $_GET['page'] ) ? $_GET['page'] : '';
+		$editing = $pagenow == 'post.php' || $pagenow == 'post-new.php';
 
         if ( ! empty( $current_screen->post_type ) ) {
 			$page = $current_screen->post_type;
         }
 
         // General styles.
-        if ( false!== stripos( $page, 'wpi' ) ) {
+        if ( false !== stripos( $page, 'wpi' ) ) {
 
             // Styles.
             $version = filemtime( WPINV_PLUGIN_DIR . 'assets/css/admin.css' );
@@ -92,7 +93,7 @@ class GetPaid_Admin {
         }
 
         // Payment form scripts.
-		if ( 'wpi_payment_form' == $page ) {
+		if ( 'wpi_payment_form' == $page && $editing ) {
             $this->load_payment_form_scripts();
         }
 
@@ -175,7 +176,6 @@ class GetPaid_Admin {
             array(
 				'elements'      => getpaid()->form_elements->get_elements(),
 				'form_elements' => getpaid()->form_elements->get_form_elements( $post->ID ),
-				'all_items'     => getpaid()->form_elements->get_published_items(),
 				'currency'      => wpinv_currency_symbol(),
 				'position'      => wpinv_currency_position(),
 				'decimals'      => (int) wpinv_decimals(),
@@ -248,7 +248,7 @@ class GetPaid_Admin {
     public function activation_redirect() {
 
 		// Bail if no activation redirect.
-		if ( ! get_transient( '_wpinv_activation_redirect' ) || is_ajax() ) {
+		if ( ! get_transient( '_wpinv_activation_redirect' ) || wp_doing_ajax() ) {
 			return;
 		}
 
