@@ -285,7 +285,7 @@ class GetPaid_Paypal_Gateway extends GetPaid_Payment_Gateway {
 
         // Fees.
 		foreach ( $invoice->get_fees() as $fee => $data ) {
-            $this->add_line_item( $fee, 1, $data['amount'] );
+            $this->add_line_item( $fee, 1, wpinv_sanitize_amount( $data['initial_fee'] ) );
         }
 
     }
@@ -483,7 +483,8 @@ class GetPaid_Paypal_Gateway extends GetPaid_Payment_Gateway {
 
         if ( $invoice && $this->id == $invoice->get_gateway() ) {
 
-			$posted['payment_status'] = strtolower( $posted['payment_status'] );
+            $posted['payment_status'] = sanitize_key( strtolower( $posted['payment_status'] ) );
+            $posted['txn_type']       = sanitize_key( strtolower( $posted['txn_type'] ) );
 
             wpinv_error_log( 'Found invoice #' . $invoice->get_number() );
             wpinv_error_log( 'Payment status:' . $posted['payment_status'] );
@@ -811,7 +812,7 @@ class GetPaid_Paypal_Gateway extends GetPaid_Payment_Gateway {
      */
     public function sandbox_notice( $description, $gateway ) {
         if ( 'paypal' == $gateway && wpinv_is_test_mode( 'paypal' ) ) {
-            $description .= '<br>' . sprintf(
+            $description .= '<br>&nbsp;<br>' . sprintf(
                 __( 'SANDBOX ENABLED. You can use sandbox testing accounts only. See the %sPayPal Sandbox Testing Guide%s for more details.', 'invoicing' ),
                 '<a href="https://developer.paypal.com/docs/classic/lifecycle/ug_sandbox/">',
                 '</a>'

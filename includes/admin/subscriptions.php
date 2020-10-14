@@ -149,7 +149,7 @@ function getpaid_admin_subscription_details_metabox( $sub ) {
 			'amount'         => __( 'Amount', 'invoicing' ),
 			'start_date'     => __( 'Start Date', 'invoicing' ),
 			'renews_on'      => __( 'Next Payment', 'invoicing' ),
-			'renewals'       => __( 'Renewals', 'invoicing' ),
+			'renewals'       => __( 'Payments', 'invoicing' ),
 			'item'           => __( 'Item', 'invoicing' ),
 			'gateway'        => __( 'Payment Method', 'invoicing' ),
 			'profile_id'     => __( 'Profile ID', 'invoicing' ),
@@ -406,7 +406,7 @@ function getpaid_admin_subscription_invoice_details_metabox( $subscription ) {
 	);
 
 	// Prepare the invoices.
-	$payments = $subscription->get_child_payments();
+	$payments = $subscription->get_child_payments( ! is_admin() );
 	$parent   = $subscription->get_parent_invoice();
 
 	if ( $parent->get_id() ) {
@@ -462,13 +462,13 @@ function getpaid_admin_subscription_invoice_details_metabox( $subscription ) {
 							echo '<tr>';
 
 								foreach ( array_keys( $columns ) as $key ) {
-									
+
 									echo '<td class="p-2 text-left">';
 
 										switch( $key ) {
 
 											case 'total':
-												echo '<strong>' . wpinv_price( wpinv_format_amount( wpinv_sanitize_amount( $payment->get_total ) ), $payment->get_currency() ) . '</strong>';
+												echo '<strong>' . wpinv_price( wpinv_format_amount( wpinv_sanitize_amount( $payment->get_total() ) ), $payment->get_currency() ) . '</strong>';
 												break;
 
 											case 'relationship':

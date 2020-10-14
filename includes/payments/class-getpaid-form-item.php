@@ -230,16 +230,17 @@ class GetPaid_Form_Item  extends WPInv_Item {
 	 * @since 1.0.19
 	 * @return array
 	 */
-	public function prepare_data_for_use() {
+	public function prepare_data_for_use( $required = null ) {
 
+		$required = is_null( $required ) ? $this->is_required() : $required;
 		return array(
-			'title'            => sanitize_text_field( $this->get_name() ),
+			'title'            => strip_tags( $this->get_name() ),
 			'id'               => $this->get_id(),
 			'price'            => $this->get_price(),
 			'recurring'        => $this->is_recurring(),
 			'description'      => $this->get_description(),
 			'allow_quantities' => $this->allows_quantities(),
-			'required'         => $this->is_required(),
+			'required'         => $required,
 		);
 
 	}

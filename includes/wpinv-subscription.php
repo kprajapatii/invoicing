@@ -769,7 +769,7 @@ class WPInv_Subscription extends GetPaid_Data {
 	 */
 	public function is_last_renewal() {
 		$max_bills = $this->get_bill_times();
-		return ! empty( $max_bills ) && $max_bills >= $this->get_times_billed();
+		return ! empty( $max_bills ) && $max_bills <= $this->get_times_billed();
 	}
 
 	/*
@@ -809,12 +809,19 @@ class WPInv_Subscription extends GetPaid_Data {
      * @since  1.0.0
      * @return WP_Post[]
      */
-    public function get_child_payments() {
+    public function get_child_payments( $hide_pending = true ) {
+
+		$statuses = array( 'publish', 'wpi-processing', 'wpi-renewal' );
+
+		if ( ! $hide_pending ) {
+			$statuses = array_keys( wpinv_get_invoice_statuses() );
+		}
+
         return get_posts(
 			array(
             	'post_parent'    => $this->get_parent_payment_id(),
             	'numberposts'    => -1,
-            	'post_status'    => array( 'publish', 'wpi-processing', 'wpi-renewal' ),
+            	'post_status'    => $statuses,
             	'orderby'        => 'ID',
             	'order'          => 'DESC',
             	'post_type'      => 'wpi_invoice'
@@ -839,7 +846,7 @@ class WPInv_Subscription extends GetPaid_Data {
 		);
 
 		// Maybe include parent invoice.
-        if ( ! $this->get_parent_payment()->is_paid() ) {
+        if ( $this->get_parent_payment()->is_paid() ) {
             $count++;
         }
 
@@ -855,7 +862,7 @@ class WPInv_Subscription extends GetPaid_Data {
     public function get_times_billed() {
         $times_billed = $this->get_total_payments();
 
-        if ( $this->has_trial_period() && $times_billed > 0 ) {
+        if ( (float) $this->get_initial_amount() == 0 && $times_billed > 0 ) {
             $times_billed--;
         }
 
@@ -885,9 +892,9 @@ class WPInv_Subscription extends GetPaid_Data {
 				return false;
 			}
 
-			$invoice->set_status( 'wpi-renewal' );
-
 		}
+
+		$invoice->set_status( 'wpi-renewal' );
 
 		// Maybe set a transaction id.
 		if ( ! empty( $args['transaction_id'] ) ) {
@@ -904,8 +911,8 @@ class WPInv_Subscription extends GetPaid_Data {
 
 		$invoice->save();
 
-		if ( ! $invoice->get_id() ) {
-			return 0;
+		if ( ! $invoice->exists() ) {
+			return false;
 		}
 
 		do_action( 'getpaid_after_create_subscription_renewal_invoice', $invoice, $this );
@@ -927,25 +934,18 @@ class WPInv_Subscription extends GetPaid_Data {
 
 		$parent_invoice = $this->get_parent_payment();
 
-		if ( ! $parent_invoice->get_id() ) {
+		if ( ! $parent_invoice->exists() ) {
 			return false;
 		}
 
 		// Duplicate the parent invoice.
-		$invoice = new WPInv_Invoice();
-		$invoice->set_props( $parent_invoice->get_data() );
-		$invoice->set_id( 0 );
-		$invoice->set_items( $parent_invoice->get_items() );
+		$invoice = getpaid_duplicate_invoice( $parent_invoice );
 		$invoice->set_parent_id( $parent_invoice->get_id() );
-		$invoice->set_transaction_id( '' );
-		$invoice->set_key( $invoice->generate_key( 'renewal_' ) );
-		$invoice->set_number( '' );
-		$invoice->set_completed_date( '' );
-		$invoice->set_status( 'wpi-pending' );
 		$invoice->recalculate_total();
+		$invoice->set_status( 'wpi-pending' );
 		$invoice->save();
 
-		return $invoice->get_id() ? $invoice : false;
+		return $invoice->exists() ? $invoice : false;
     }
 
 	/**
