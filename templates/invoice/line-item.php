@@ -4,7 +4,10 @@
  *
  * This template can be overridden by copying it to yourtheme/invoicing/line-item.php.
  *
- * @version 1.0.19
+ * @version 1.0.
+ * @var WPInv_Invoice $invoice
+ * @var GetPaid_Form_Item $item
+ * @var array $columns
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -13,7 +16,7 @@ do_action( 'getpaid_before_invoice_line_item', $invoice, $item );
 
 ?>
 
-<div class='getpaid-invoice-item item-<?php echo (int) $item->get_id(); ?> item-type-<?php echo sanitize_html_class( $item->get_type() ); ?>'>
+<div class='getpaid-invoice-item item-<?php echo (int) $item->get_id(); ?> item-type-<?php echo sanitize_html_class( $item->get_type() ); ?> border-bottom'>
 
     <div class="form-row">
 
@@ -40,6 +43,12 @@ do_action( 'getpaid_before_invoice_line_item', $invoice, $item );
                             echo "<small class='form-text text-muted pr-2 m-0'>$description</small>";
                         }
 
+                        // Price help text.
+                        $description = getpaid_item_recurring_price_help_text( $item, $currency );
+                        if ( $description ) {
+                            echo "<small class='form-text text-muted pr-2 m-0'>$description</small>";
+                        }
+
                         $actions = apply_filters( 'getpaid-invoice-page-line-item-actions', array(), $item, $invoice );
 
                         if ( ! empty( $actions ) ) {
@@ -63,22 +72,20 @@ do_action( 'getpaid_before_invoice_line_item', $invoice, $item );
                     if ( 'price' == $column ) {
 
                         // Display the item price (or recurring price if this is a renewal invoice)
-                        if ( $invoice->is_recurring() && $invoice->is_renewal() ) {
-                            echo wpinv_price( wpinv_format_amount( $item->get_price() ), $invoice->get_currency() );
-                        } else {
-                            echo wpinv_price( wpinv_format_amount( $item->get_initial_price() ), $invoice->get_currency() );
-                        }
+                        $price = $invoice->is_renewal() ? $item->get_price() : $item->get_initial_price();
+                        echo wpinv_price( $price );
 
                     }
 
                     // Item quantity.
                     if ( 'quantity' == $column ) {
-                        echo (int) $item->get_qantity();
+                        echo (int) $item->get_quantity();
                     }
 
                     // Item sub total.
                     if ( 'subtotal' == $column ) {
-                        echo wpinv_price( wpinv_format_amount( $item->get_sub_total() ), $invoice->get_currency() );
+                        $subtotal = $invoice->is_renewal() ? $item->get_recurring_sub_total() : $item->get_sub_total();
+                        echo wpinv_price( $subtotal );
                     }
 
                     // Fires when printing a line item column.
