@@ -35,8 +35,9 @@ class GetPaid_Payment_Form_Submission_Items {
 		}
 
 		// For default forms, ensure that an item has been set.
-		if ( $payment_form->is_default() && ! $submission->has_invoice() ) {
-			$payment_form->set_items( $selected_items );
+		if ( $payment_form->is_default() && ! $submission->has_invoice() && isset( $data['getpaid-form-items'] ) ) {
+			$form_items = wpinv_clean( $data['getpaid-form-items'] );
+			$payment_form->set_items( getpaid_convert_items_to_array( $form_items ) );
 		}
 
 		// Process each individual item.
@@ -71,8 +72,9 @@ class GetPaid_Payment_Form_Submission_Items {
 			if ( $item->user_can_set_their_price() ) {
 				$price = (float) wpinv_sanitize_amount( $selected_items[ $item->get_id() ]['price'] );
 
-				// But don't get lower than the minimum price.
-				$price = max( $price, $item->get_minimum_price() );
+				if ( $item->get_minimum_price() > $price ) {
+					throw new Exception( sprintf( __( 'The minimum allowed amount is %s', 'invoicing' ), wpinv_sanitize_amount( $item->get_minimum_price() ) ) );
+				}
 
 				$item->set_price( $price );
 
