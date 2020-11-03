@@ -383,11 +383,6 @@ class WPInv_Plugin {
 		$localize                         = array();
 		$localize['ajax_url']             = admin_url( 'admin-ajax.php' );
 		$localize['nonce']                = wp_create_nonce( 'wpinv-nonce' );
-		$localize['currency_symbol']      = wpinv_currency_symbol();
-		$localize['currency_pos']         = wpinv_currency_position();
-		$localize['thousand_sep']         = wpinv_thousands_separator();
-		$localize['decimal_sep']          = wpinv_decimal_separator();
-		$localize['decimals']             = wpinv_decimals();
 		$localize['txtComplete']          = __( 'Continue', 'invoicing' );
 		$localize['UseTaxes']             = wpinv_use_taxes();
 		$localize['checkoutNonce']        = wp_create_nonce( 'wpinv_checkout_nonce' );
@@ -397,15 +392,6 @@ class WPInv_Plugin {
 		$localize = apply_filters( 'wpinv_front_js_localize', $localize );
 
 		wp_enqueue_script( 'jquery-blockui' );
-		$autofill_api = wpinv_get_option('address_autofill_api');
-		$autofill_active = wpinv_get_option('address_autofill_active');
-		if ( isset( $autofill_active ) && 1 == $autofill_active && !empty( $autofill_api ) && wpinv_is_checkout() ) {
-			if ( wp_script_is( 'google-maps-api', 'enqueued' ) ) {
-				wp_dequeue_script( 'google-maps-api' );
-			}
-			wp_enqueue_script( 'google-maps-api', 'https://maps.googleapis.com/maps/api/js?key=' . $autofill_api . '&libraries=places', array( 'jquery' ), '', false );
-			wp_enqueue_script( 'google-maps-init', WPINV_PLUGIN_URL . 'assets/js/gaaf.js', array( 'jquery', 'google-maps-api' ), '', true );
-		}
 
 		wp_enqueue_style( "select2", WPINV_PLUGIN_URL . 'assets/css/select2/select2.min.css', array(), WPINV_VERSION, 'all' );
 		wp_enqueue_script('select2', WPINV_PLUGIN_URL . 'assets/js/select2/select2.full' . $suffix . '.js', array( 'jquery' ), WPINV_VERSION );
@@ -431,16 +417,24 @@ class WPInv_Plugin {
      */
     public function maybe_do_authenticated_action() {
 
-        if ( is_user_logged_in() && isset( $_REQUEST['getpaid-action'] ) && isset( $_REQUEST['getpaid-nonce'] ) && wp_verify_nonce( $_REQUEST['getpaid-nonce'], 'getpaid-nonce' ) ) {
-            $key = sanitize_key( $_REQUEST['getpaid-action'] );
-            do_action( "getpaid_authenticated_action_$key", $_REQUEST );
-        }
+		if ( isset( $_REQUEST['getpaid-action'] ) && isset( $_REQUEST['getpaid-nonce'] ) && wp_verify_nonce( $_REQUEST['getpaid-nonce'], 'getpaid-nonce' ) ) {
+
+			$key = sanitize_key( $_REQUEST['getpaid-action'] );
+			if ( is_user_logged_in() ) {
+				do_action( "getpaid_authenticated_action_$key", $_REQUEST );
+			}
+
+			do_action( "getpaid_unauthenticated_action_$key", $_REQUEST );
+
+		}
+        
 
     }
 
 	public function pre_get_posts( $wp_query ) {
-		if ( ! is_admin() && !empty( $wp_query->query_vars['post_type'] ) && $wp_query->query_vars['post_type'] == 'wpi_invoice' && is_user_logged_in() && is_single() && $wp_query->is_main_query() ) {
-			$wp_query->query_vars['post_status'] = array_keys( wpinv_get_invoice_statuses() );
+
+		if ( ! is_admin() && ! empty( $wp_query->query_vars['post_type'] ) && getpaid_is_invoice_post_type( $wp_query->query_vars['post_type'] ) && is_user_logged_in() && is_single() && $wp_query->is_main_query() ) {
+			$wp_query->query_vars['post_status'] = array_keys( wpinv_get_invoice_statuses( false, false, $wp_query->query_vars['post_type'] ) );
 		}
 
 		return $wp_query;
