@@ -156,9 +156,6 @@ jQuery(function($) {
 
     }
 
-    // Non-editable items.
-    $('.wpi-editable-n #post :input').attr( 'disabled', true );
-
     // Rename excerpt to 'description'
     $('body.post-type-wpi_item #postexcerpt h2.hndle').text( WPInv_Admin.item_description )
     $('body.post-type-wpi_discount #postexcerpt h2.hndle').text( WPInv_Admin.discount_description )
@@ -803,7 +800,7 @@ jQuery(function($) {
             country: $(this).val(),
             field_name: $this.attr('name').replace('country', 'state')
         };
-        $.post(ajaxurl, data, function(response) {
+        $.post(WPInv_Admin.ajax_url, data, function(response) {
             if ('nostates' == response) {
                 var text_field = '<input type="text" name="' + data.field_name + '" value=""/>';
                 $this.parent().next().find('select').replaceWith(text_field);
@@ -834,7 +831,7 @@ jQuery(function($) {
         };
 
         // Fetch new states field.
-        $.post( ajaxurl, data )
+        $.post( WPInv_Admin.ajax_url, data )
 
         .done( function( response ) {
 
@@ -956,7 +953,7 @@ jQuery(function($) {
                     country: $(this).val(),
                     field_name: 'wpinv_settings[default_state]'
                 };
-                $.post(ajaxurl, data, function(response) {
+                $.post(WPInv_Admin.ajax_url, data, function(response) {
                     if ('nostates' == response) {
                         $tr.next().hide();
                     } else {
@@ -1018,12 +1015,7 @@ jQuery(function($) {
         }
     };
     $('.getpaid-is-invoice-cpt form#post #titlediv [name="post_title"]').attr('readonly', true);
-    $('.post-type-wpi_item.wpi-editable-n form#post').attr('action', 'javascript:void(0)');
-    $('.post-type-wpi_item.wpi-editable-n #submitdiv #publishing-action').remove();
-    $('.post-type-wpi_item.wpi-editable-n #submitdiv #misc-publishing-actions a.edit-post-status').remove();
-    $('.post-type-wpi_item .posts .wpi-editable-n').each(function(e) {
-        $('.check-column [type="checkbox"]', $(this)).attr('disabled', true);
-    });
+
     WPInv.init();
     var WPInv_Export = {
         init: function() {
@@ -1054,7 +1046,7 @@ jQuery(function($) {
                 data: data,
             };
             $.ajax({
-                url: ajaxurl,
+                url: WPInv_Admin.ajax_url,
                 type: 'POST',
                 cache: false,
                 dataType: 'json',

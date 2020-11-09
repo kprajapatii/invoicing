@@ -107,6 +107,7 @@ class WPInv_Plugin {
 		$this->set( 'subscription_emails', new GetPaid_Subscription_Notification_Emails() );
 		$this->set( 'daily_maintenace', new GetPaid_Daily_Maintenance() );
 		$this->set( 'payment_forms', new GetPaid_Payment_Forms() );
+		$this->set( 'maxmind', new GetPaid_MaxMind_Geolocation() );
 
 	}
 
@@ -306,6 +307,7 @@ class WPInv_Plugin {
 			"$plugin_path/includes/data-stores",
 			"$plugin_path/includes/gateways",
 			"$plugin_path/includes/payments",
+			"$plugin_path/includes/geolocation",
 			"$plugin_path/includes/api",
 			"$plugin_path/includes/admin",
 			"$plugin_path/includes/admin/meta-boxes",
@@ -512,7 +514,12 @@ class WPInv_Plugin {
 				<div  id="getpaid-payment-modal" class="modal" tabindex="-1" role="dialog">
 					<div class="modal-dialog modal-dialog-centered modal-lg" role="checkout" style="max-width: 650px;">
 						<div class="modal-content">
-							<div class="modal-body"></div>
+							<div class="modal-body">
+								<button type="button" class="close p-2 getpaid-payment-modal-close d-sm-none" data-dismiss="modal" aria-label="' . esc_attr__( 'Close', 'invoicing' ) . '">
+									<i class="fa fa-times" aria-hidden="true"></i>
+								</button>
+								<div class="modal-body-wrapper"></div>
+							</div>
 						</div>
 					</div>
 				</div>

@@ -294,34 +294,6 @@ function wpinv_add_body_classes( $class ) {
 }
 add_filter( 'body_class', 'wpinv_add_body_classes' );
 
-function wpinv_html_dropdown( $name = 'wpinv_discounts', $selected = 0, $status = '' ) {
-    $args = array( 'nopaging' => true );
-
-    if ( ! empty( $status ) )
-        $args['post_status'] = $status;
-
-    $discounts = wpinv_get_discounts( $args );
-    $options   = array();
-
-    if ( $discounts ) {
-        foreach ( $discounts as $discount ) {
-            $options[ absint( $discount->ID ) ] = esc_html( get_the_title( $discount->ID ) );
-        }
-    } else {
-        $options[0] = __( 'No discounts found', 'invoicing' );
-    }
-
-    $output = wpinv_html_select( array(
-        'name'             => $name,
-        'selected'         => $selected,
-        'options'          => $options,
-        'show_option_all'  => false,
-        'show_option_none' => false,
-    ) );
-
-    return $output;
-}
-
 function wpinv_html_year_dropdown( $name = 'year', $selected = 0, $years_before = 5, $years_after = 0 ) {
     $current     = date( 'Y' );
     $start_year  = $current - absint( $years_before );
@@ -732,11 +704,6 @@ function wpinv_html_ajax_user_search( $args = array() ) {
 
     return $output;
 }
-
-/**
- * @deprecated.
- */
-function wpinv_ip_geolocation() {}
 
 /**
  * Use our template to display invoices.
@@ -1434,21 +1401,20 @@ function getpaid_convert_items_to_string( $items ) {
  */
 function getpaid_get_payment_button( $label, $form = null, $items = null, $invoice = null ) {
     $label = sanitize_text_field( $label );
-    $nonce = wp_create_nonce('getpaid_ajax_form');
 
     if ( ! empty( $form ) ) {
         $form  = esc_attr( $form );
-        return "<button class='btn btn-primary getpaid-payment-button' type='button' data-nonce='$nonce' data-form='$form'>$label</button>"; 
+        return "<button class='btn btn-primary getpaid-payment-button' type='button' data-form='$form'>$label</button>"; 
     }
 	
 	if ( ! empty( $items ) ) {
         $items  = esc_attr( $items );
-        return "<button class='btn btn-primary getpaid-payment-button' type='button' data-nonce='$nonce' data-item='$items'>$label</button>"; 
+        return "<button class='btn btn-primary getpaid-payment-button' type='button' data-item='$items'>$label</button>"; 
     }
     
     if ( ! empty( $invoice ) ) {
         $invoice  = esc_attr( $invoice );
-        return "<button class='btn btn-primary getpaid-payment-button' type='button' data-nonce='$nonce' data-invoice='$invoice'>$label</button>"; 
+        return "<button class='btn btn-primary getpaid-payment-button' type='button' data-invoice='$invoice'>$label</button>"; 
     }
 
 }
@@ -1626,4 +1592,75 @@ function getpaid_paginate_links( $args ) {
     $links .= "</li>\n\t</ul>\n</nav>\n";
 
     return $links;
+}
+
+/**
+ * Displays the states select markup.
+ * 
+ * @param string country
+ * @param string state
+ * @return string
+ */
+function getpaid_get_states_select_markup( $country, $state, $placeholder, $label, $help_text, $required = false, $wrapper_class = 'col-12', $field_name = 'wpinv_state' ) {
+
+    $states = wpinv_get_country_states( $country );
+    $uniqid = uniqid( '_' );
+
+    if ( ! empty( $states ) ) {
+
+        return aui()->select( array(
+            'options'          => $states,
+            'name'             => esc_attr( $field_name ),
+            'id'               => sanitize_html_class( $field_name ) . $uniqid,
+            'value'            => sanitize_text_field( $state ),
+            'placeholder'      => $placeholder,
+            'required'         => $required,
+            'label'            => wp_kses_post( $label ),
+            'label_type'       => 'vertical',
+            'help_text'        => $help_text,
+            'class'            => 'getpaid-address-field wpinv_state',
+            'wrap_class'       => "$wrapper_class getpaid-address-field-wrapper__state",
+            'label_class'      => 'getpaid-address-field-label getpaid-address-field-label__state',
+        ));
+
+    }
+
+    return aui()->input(
+        array(
+            'name'        => esc_attr( $field_name ),
+            'id'          => sanitize_html_class( $field_name ) . $uniqid,
+            'placeholder' => $placeholder,
+            'required'    => $required,
+            'label'       => wp_kses_post( $label ),
+            'label_type'  => 'vertical',
+            'help_text'   => $help_text,
+            'value'       => sanitize_text_field( $state ),
+            'class'       => 'getpaid-address-field wpinv_state',
+            'wrap_class'  => "$wrapper_class getpaid-address-field-wrapper__state",
+            'label_class' => 'getpaid-address-field-label getpaid-address-field-label__state',
+        )
+    );
+
+}
+
+/**
+ * Retrieves an element's grid width.
+ * 
+ * @param array $element
+ * @return string
+ */
+function getpaid_get_form_element_grid_class( $element ) {
+
+    $class = "col-12";
+    $width = empty( $element['grid_width'] ) ? 'full' : $element['grid_width'];
+
+    if ( $width == 'half' ) {
+        $class = "col-12 col-md-6";
+    }
+
+    if ( $width == 'third' ) {
+        $class = "col-12 col-md-4";
+    }
+
+    return $class;
 }

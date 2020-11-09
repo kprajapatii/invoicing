@@ -128,7 +128,7 @@ class GetPaid_Admin {
             'invoice_item_nonce'        => wp_create_nonce( 'invoice-item' ),
             'billing_details_nonce'     => wp_create_nonce( 'get-billing-details' ),
             'tax'                       => wpinv_tax_amount(),
-            'discount'                  => wpinv_discount_amount(),
+            'discount'                  => 0,
             'currency_symbol'           => wpinv_currency_symbol(),
             'currency_pos'              => wpinv_currency_position(),
             'thousand_sep'              => wpinv_thousands_separator(),
@@ -231,10 +231,6 @@ class GetPaid_Admin {
 		if ( getpaid_is_invoice_post_type( $page ) ) {
             $classes .= ' getpaid-is-invoice-cpt';
         }
-
-		if ( $pagenow == 'post.php' && $page == 'wpi_item' && ! empty( $post ) && ! wpinv_item_is_editable( $post ) ) {
-			$classes .= ' wpi-editable-n';
-		}
 
 		return $classes;
     }

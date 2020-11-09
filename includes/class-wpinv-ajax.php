@@ -99,7 +99,6 @@ class WPInv_Ajax {
             'check_new_user_email'        => false,
             'run_tool'                    => false,
             'payment_form_refresh_prices' => true,
-            'ip_geolocation'              => true,
         );
 
         foreach ( $ajax_events as $ajax_event => $nopriv ) {
@@ -253,10 +252,7 @@ class WPInv_Ajax {
     public static function get_payment_form() {
 
         // Check nonce.
-        if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( $_GET['nonce'], 'getpaid_ajax_form' ) ) {
-            _e( 'Error: Reload the page and try again.', 'invoicing' );
-            exit;
-        }
+        check_ajax_referer( 'getpaid_form_nonce' );
 
         // Is the request set up correctly?
 		if ( empty( $_GET['form'] ) && empty( $_GET['item'] ) ) {
@@ -340,6 +336,8 @@ class WPInv_Ajax {
 
             if ( 'wpinv_state' == $address_field['name'] ) {
 
+                $wrap_class  = getpaid_get_form_element_grid_class( $address_field );
+                $wrap_class  = esc_attr( "$wrap_class getpaid-address-field-wrapper" );
                 $placeholder = empty( $address_field['placeholder'] ) ? '' : esc_attr( $address_field['placeholder'] );
                 $description = empty( $address_field['description'] ) ? '' : wp_kses_post( $address_field['description'] );
                 $value       = is_user_logged_in() ? get_user_meta( get_current_user_id(), '_wpinv_state', true ) : '';
@@ -349,40 +347,16 @@ class WPInv_Ajax {
                     $label .= "<span class='text-danger'> *</span>";
                 }
 
-                $states = wpinv_get_country_states( $_GET['country'] );
-
-                if ( ! empty( $states ) ) {
-
-                    $html = aui()->select( array(
-                        'options'          => $states,
-                        'name'             => 'wpinv_state',
-                        'id'               => 'wpinv_state' . uniqid(),
-                        'value'            => sanitize_text_field( $value ),
-                        'placeholder'      => $placeholder,
-                        'required'         => ! empty( $address_field['required'] ),
-                        'label'            => wp_kses_post( $label ),
-                        'label_type'       => 'vertical',
-                        'help_text'        => $description,
-                        'class'            => 'wpinv_state',
-                    ));
-
-                } else {
-
-                    $html = aui()->input(
-                        array(
-                            'name'       => 'wpinv_state',
-                            'id'         => 'wpinv_state' . uniqid(),
-                            'placeholder'=> $placeholder,
-                            'required'   => ! empty( $address_field['required'] ),
-                            'label'      => wp_kses_post( $label ),
-                            'label_type' => 'vertical',
-                            'help_text'  => $description,
-                            'value'      => $value,
-                            'class'      => 'wpinv_state',
-                        )
-                    );
-
-                }
+                $html = getpaid_get_states_select_markup (
+                    sanitize_text_field( $_GET['country'] ),
+                    $value,
+                    $placeholder,
+                    $label,
+                    $description,
+                    ! empty( $address_field['required'] ),
+                    $wrap_class,
+                    wpinv_clean( $_GET['name'] )
+                );
 
                 wp_send_json_success( $html );
                 exit;
@@ -776,58 +750,6 @@ class WPInv_Ajax {
             )
         );
 
-    }
-
-    /**
-     * IP geolocation.
-     *
-     * @since 1.0.19
-     */
-    public static function ip_geolocation() {
-
-        // Check nonce.
-        check_ajax_referer( 'getpaid-ip-location' );
-
-        // IP address.
-        if ( empty( $_GET['ip'] ) || ! rest_is_ip_address( $_GET['ip'] ) ) {
-            _e( 'Invalid IP Address.', 'invoicing' );
-            exit;
-        }
-
-        // Retrieve location info.
-        $location = getpaid_geolocate_ip_address( $_GET['ip'] );
-
-        if ( empty( $location ) ) {
-            _e( 'Unable to find geolocation for the IP Address.', 'invoicing' );
-            exit;
-        }
-
-        // Sorry.
-        extract( $location );
-
-        // Prepare the address.
-        $content = '';
-
-        if ( ! empty( $location['city'] ) ) {
-            $content .=  $location['city']  . ', ';
-        }
-        
-        if ( ! empty( $location['region'] ) ) {
-            $content .=  $location['region']  . ', ';
-        }
-        
-        $content .=  $location['country'] . ' (' . $location['iso'] . ')';
-
-        $location['address'] = $content;
-
-        $content  = '<p>'. sprintf( __( '<b>Address:</b> %s', 'invoicing' ), $content ) . '</p>';
-        $content .= '<p>'. $location['credit'] . '</p>';
-
-        $location['content'] = $content;
-
-        wpinv_get_template( 'geolocation.php', $location );
-
-        exit;
     }
 
     /**

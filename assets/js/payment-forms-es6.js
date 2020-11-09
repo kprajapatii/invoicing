@@ -81,11 +81,6 @@ jQuery(function($) {
                 // Display the error
                 form.find( '.getpaid-payment-form-errors' ).html( error ).removeClass( 'd-none' )
 
-                // Animate to the error
-                $( 'html, body' ).animate({
-                    scrollTop: form.find( '.getpaid-payment-form-errors' ).offset().top
-                }, 500);
-
             },
 
             // Hides the current error.
@@ -211,31 +206,35 @@ jQuery(function($) {
             },
 
             // Updates the state field.
-            update_state_field() {
+            update_state_field( wrapper ) {
+
+                wrapper = $( wrapper )
 
                 // Ensure that we have a state field.
-                if ( this.form.find( '.wpinv_state' ).length ) {
+                if ( wrapper.find( '.wpinv_state' ).length ) {
 
-                    var state = this.form.find( '.wpinv_state' ).parent()
+                    var state = wrapper.find( '.getpaid-address-field-wrapper__state' )
 
                     wpinvBlock( state );
 
                     var data = {
                         action: 'wpinv_get_payment_form_states_field',
-                        country: this.form.find( '.wpinv_country' ).val(),
-                        form: this.form.find( 'input[name="form_id"]' ).val()
+                        country: wrapper.find( '.wpinv_country' ).val(),
+                        form: this.form.find( 'input[name="form_id"]' ).val(),
+                        name: state.find( '.wpinv_state' ).attr( 'name' ),
+                        _ajax_nonce: WPInv.formNonce
                     };
 
-                    $.get(ajaxurl, data, ( res ) => {
+                    $.get( WPInv.ajax_url, data, ( res ) => {
 
                         if ( 'object' == typeof res ) {
-                            state.html( res.data )
+                            state.replaceWith( res.data )
                         }
 
                     })
 
                     .always( () => {
-                        state.unblock()
+                        wrapper.find( '.getpaid-address-field-wrapper__state' ).unblock()
                     });
 
                 }
@@ -261,14 +260,19 @@ jQuery(function($) {
                 this.form.on( 'change', '.getpaid-item-quantity-input', on_field_change );
                 this.form.on( 'change', '[name="getpaid-payment-form-selected-item"]', on_field_change);
 
+                // Update states when country changes.
+                this.form.on( 'change', '.getpaid-shipping-address-wrapper .wpinv_country', () => {
+                    this.update_state_field( '.getpaid-shipping-address-wrapper' )
+                } );
+
                 // Refresh when country changes.
-                this.form.on( 'change', '.wpinv_country', () => {
-                    this.update_state_field()
+                this.form.on( 'change', '.getpaid-billing-address-wrapper .wpinv_country', () => {
+                    this.update_state_field( '.getpaid-billing-address-wrapper' )
                     on_field_change()
                 } );
 
                 // Refresh when state changes.
-                this.form.on( 'change', '.wpinv_state', () => {
+                this.form.on( 'change', '.getpaid-billing-address-wrapper .wpinv_state', () => {
                     on_field_change()
                 } );
 
@@ -310,18 +314,20 @@ jQuery(function($) {
 
                 // Prepare the submit btn.
                 var submit_btn = this.form.find( '.getpaid-payment-form-submit' )
+                var free_label = submit_btn.data( 'free' ).replace( /%price%/gi, state.totals.raw_total );
+                var btn_label  = submit_btn.data( 'pay' ).replace( /%price%/gi, state.totals.raw_total );
                 submit_btn.prop( 'disabled', false ).css('cursor', 'pointer')
 
                 // If it's free, hide the gateways and display the free checkout text...
                 if ( state.is_free ) {
-                    submit_btn.val( submit_btn.data( 'free' ) )
+                    submit_btn.val( free_label )
                     this.form.find( '.getpaid-gateways' ).slideUp();
                     return
                 }
 
                 // ... else show, the gateways and the pay text.
                 this.form.find( '.getpaid-gateways' ).slideDown();
-                submit_btn.val( submit_btn.data( 'pay' ) );
+                submit_btn.val( btn_label );
 
                 // Next, hide the no gateways errors and display the gateways div.
                 this.form.find( '.getpaid-no-recurring-gateways, .getpaid-no-active-gateways' ).addClass( 'd-none' );
@@ -403,7 +409,39 @@ jQuery(function($) {
                 // Trigger change event for selected method.
                 $( 'input', list ).filter( ':checked' ).trigger( 'change' );
 
-        })
+            })
+
+            },
+
+            // Handles toggling shipping address on and off.
+            handleAddressToggle( address_toggle ) {
+
+                var wrapper = address_toggle.closest( '.getpaid-payment-form-element-address' )
+
+                // Hide titles and shipping address.
+                wrapper.find( '.getpaid-billing-address-title, .getpaid-shipping-address-title, .getpaid-shipping-address-wrapper' ).addClass( 'd-none' )
+
+                address_toggle.on( 'change', function() {
+
+                    if ( $( this ).is(':checked') ) {
+
+                        // Hide titles and shipping address.
+                        wrapper.find( '.getpaid-billing-address-title, .getpaid-shipping-address-title, .getpaid-shipping-address-wrapper' ).addClass( 'd-none' )
+
+                        // Show general title.
+                        wrapper.find( '.getpaid-shipping-billing-address-title' ).removeClass( 'd-none' )
+
+                    } else {
+
+                        // Show titles and shipping address.
+                        wrapper.find( '.getpaid-billing-address-title, .getpaid-shipping-address-title, .getpaid-shipping-address-wrapper' ).removeClass( 'd-none' )
+
+                        // Hide general title.
+                        wrapper.find( '.getpaid-shipping-billing-address-title' ).addClass( 'd-none' )
+
+                    }
+
+                });
 
             },
 
@@ -413,6 +451,16 @@ jQuery(function($) {
                 this.setup_saved_payment_tokens()
                 this.attach_events()
                 this.refresh_state()
+
+                // Hide billing email.
+                this.form.find( '.getpaid-payment-form-element-billing_email span.d-none' ).closest( '.col-12' ).addClass( 'd-none' )
+
+                // Handle shipping address.
+                var address_toggle = this.form.find( '[name ="same-shipping-address"]' )
+
+                if ( address_toggle.length > 0 ) {
+                    this.handleAddressToggle( address_toggle )
+                }
 
                 // Trigger setup event.
                 $( 'body' ).trigger( 'getpaid_setup_payment_form', [this.form] );
@@ -653,18 +701,19 @@ jQuery(function($) {
         e.preventDefault();
 
         // Add the loader.
-        $('#getpaid-payment-modal .modal-body')
+        $('#getpaid-payment-modal .modal-body-wrapper')
             .html( '<div class="d-flex align-items-center justify-content-center"><div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div></div>' )
 
         // Display the modal.
         $('#getpaid-payment-modal').modal()
 
         // Load the form via ajax.
-        var data    = $( this ).data()
-        data.action = 'wpinv_get_payment_form'
+        var data         = $( this ).data()
+        data.action      = 'wpinv_get_payment_form'
+        data._ajax_nonce = WPInv.formNonce
 
         $.get( WPInv.ajax_url, data, function (res) {
-            $('#getpaid-payment-modal .modal-body').html( res )
+            $('#getpaid-payment-modal .modal-body-wrapper').html( res )
             $('#getpaid-payment-modal').modal('handleUpdate')
             $('#getpaid-payment-modal .getpaid-payment-form').each( function() {
                 setup_form( $( this ) );
@@ -672,7 +721,7 @@ jQuery(function($) {
         })
 
         .fail(function (res) {
-            $('#getpaid-payment-modal .modal-body').html(WPInv.connectionError)
+            $('#getpaid-payment-modal .modal-body-wrapper').html(WPInv.connectionError)
             $('#getpaid-payment-modal').modal('handleUpdate')
         })
 

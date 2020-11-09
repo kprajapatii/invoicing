@@ -145,7 +145,7 @@ class GetPaid_Payment_Form_Submission_Taxes {
 	public function get_vat_number( $submission ) {
 
 		// Retrieve from the posted number.
-		$vat_number = $submission->get_field( 'wpinv_vat_number' );
+		$vat_number = $submission->get_field( 'wpinv_vat_number', 'billing' );
 		if ( ! empty( $vat_number ) ) {
 			return wpinv_clean( $vat_number );
 		}
@@ -164,7 +164,7 @@ class GetPaid_Payment_Form_Submission_Taxes {
 	public function get_company( $submission ) {
 
 		// Retrieve from the posted data.
-		$company = $submission->get_field( 'wpinv_company' );
+		$company = $submission->get_field( 'wpinv_company', 'billing' );
 		if ( ! empty( $company ) ) {
 			return wpinv_clean( $company );
 		}
@@ -209,7 +209,7 @@ class GetPaid_Payment_Form_Submission_Taxes {
 		// Prepare variables.
 		$vat_number  = $this->get_vat_number( $submission );
 		$company     = $this->get_company( $submission );
-		$ip_country  = WPInv_EUVat::get_country_by_ip();
+		$ip_country  = getpaid_get_ip_country();
         $is_eu       = $this->is_eu_country( $submission->country );
         $is_ip_eu    = $this->is_eu_country( $ip_country );
 

@@ -19,17 +19,26 @@ function wpinv_item_quantities_enabled() {
  * Returns the user's ip address.
  */
 function wpinv_get_ip() {
-    $ip = $_SERVER['REMOTE_ADDR'];
 
-    if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-        //Check ip from share internet.
-        $ip = $_SERVER['HTTP_CLIENT_IP'];
-    } elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-        //Check ip is pass from proxy.
-        $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    if ( isset( $_SERVER['HTTP_X_REAL_IP'] ) ) {
+        return sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_REAL_IP'] ) );
     }
 
-    return apply_filters( 'wpinv_get_ip', $ip );
+    if ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+        // Proxy servers can send through this header like this: X-Forwarded-For: client1, proxy1, proxy2
+        // Make sure we always only send through the first IP in the list which should always be the client IP.
+        return (string) rest_is_ip_address( trim( current( preg_split( '/,/', sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) ) ) ) );
+    }
+
+    if ( isset( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+        return sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
+    }
+
+    if ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
+        return sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+    }
+
+    return '';
 }
 
 function wpinv_get_user_agent() {
@@ -949,4 +958,60 @@ function getpaid_admin() {
  */
 function getpaid_get_authenticated_action_url( $action, $base = false ) {
     return wp_nonce_url( add_query_arg( 'getpaid-action', $action, $base ), 'getpaid-nonce', 'getpaid-nonce' );
+}
+
+/**
+ * Returns a post type label.
+ *
+ * @return string
+ */
+function getpaid_get_post_type_label( $post_type, $plural = true ) {
+
+    $post_type = get_post_type_object( $post_type );
+
+    if ( ! is_object( $post_type ) ) {
+        return null;
+    }
+
+    return $plural ? $post_type->labels->name : $post_type->labels->singular_name;
+
+}
+
+/**
+ * Retrieves an array
+ *
+ * @return mixed|null
+ */
+function getpaid_get_array_field( $array, $key, $secondary_key = null ) {
+
+    if ( ! is_array( $array ) ) {
+        return null;
+    }
+
+    if ( ! empty( $secondary_key ) ) {
+        $array = isset( $array[ $secondary_key ] ) ? $array[ $secondary_key ] : array();
+        return getpaid_get_array_field( $array, $key );
+    }
+
+    return isset( $array[ $key ] ) ? $array[ $key ] : null;
+
+}
+
+/**
+ * Merges an empty array
+ *
+ * @return array
+ */
+function getpaid_array_merge_if_empty( $args, $defaults ) {
+
+    foreach ( $defaults as $key => $value ) {
+
+        if ( array_key_exists( $key, $args ) && empty( $args[ $key ] ) ) {
+            $args[ $key ] = $value;
+        }
+
+    }
+
+    return $args;
+
 }

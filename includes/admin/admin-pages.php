@@ -49,77 +49,64 @@ function wpinv_discount_row_actions( $discount, $row_actions ) {
     $edit_link = get_edit_post_link( $discount->ID );
     $row_actions['edit'] = '<a href="' . esc_url( $edit_link ) . '">' . __( 'Edit', 'invoicing' ) . '</a>';
 
-    if( in_array( strtolower( $discount->post_status ),  array(  'publish' ) ) ) {
-        $row_actions['deactivate'] = '<a href="' . esc_url( wp_nonce_url( add_query_arg( array( 'wpi_action' => 'deactivate_discount', 'discount' => $discount->ID ) ), 'wpinv_discount_nonce' ) ) . '">' . __( 'Deactivate', 'invoicing' ) . '</a>';
-    } elseif( in_array( strtolower( $discount->post_status ),  array( 'pending', 'draft' ) ) ) {
-        $row_actions['activate'] = '<a href="' . esc_url( wp_nonce_url( add_query_arg( array( 'wpi_action' => 'activate_discount', 'discount' => $discount->ID ) ), 'wpinv_discount_nonce' ) ) . '">' . __( 'Activate', 'invoicing' ) . '</a>';
+    if ( in_array( strtolower( $discount->post_status ),  array(  'publish' ) ) ) {
+
+        $url    = esc_url(
+                    wp_nonce_url(
+                        add_query_arg(
+                            array(
+                                'getpaid-admin-action' => 'deactivate_discount',
+                                'discount'             => $discount->ID,
+                            )
+                        ),
+                        'getpaid-nonce',
+                        'getpaid-nonce'
+                    )
+                );
+		$anchor = __( 'Deactivate', 'invoicing' );
+		$title  = esc_attr__( 'Are you sure you want to deactivate this discount?', 'invoicing' );
+        $row_actions['deactivate'] = "<a href='$url' onclick='return confirm(\"$title\")'>$anchor</a>";
+
+    } else if( in_array( strtolower( $discount->post_status ),  array( 'pending', 'draft' ) ) ) {
+
+        $url    = esc_url(
+            wp_nonce_url(
+                add_query_arg(
+                    array(
+                        'getpaid-admin-action' => 'activate_discount',
+                        'discount'             => $discount->ID,
+                    )
+                ),
+                'getpaid-nonce',
+                'getpaid-nonce'
+            )
+        );
+		$anchor = __( 'Activate', 'invoicing' );
+		$title  = esc_attr__( 'Are you sure you want to activate this discount?', 'invoicing' );
+        $row_actions['activate'] = "<a href='$url' onclick='return confirm(\"$title\")'>$anchor</a>";
+
     }
 
-    $delete_url = esc_url(
+    $url    = esc_url(
         wp_nonce_url(
             add_query_arg(
                 array(
-                    'wpi_action' => 'delete_discount',
-                    'discount' => $discount->ID
+                    'getpaid-admin-action' => 'delete_discount',
+                    'discount'             => $discount->ID,
                 )
             ),
-            'wpinv_discount_nonce'
+            'getpaid-nonce',
+            'getpaid-nonce'
         )
     );
-    $row_actions['delete'] = '<a href="' . $delete_url . '">' . __( 'Delete', 'invoicing' ) . '</a>';
+	$anchor = __( 'Delete', 'invoicing' );
+	$title  = esc_attr__( 'Are you sure you want to delete this discount?', 'invoicing' );
+    $row_actions['delete'] = "<a href='$url' onclick='return confirm(\"$title\")'>$anchor</a>";
 
     $row_actions = apply_filters( 'wpinv_discount_row_actions', $row_actions, $discount );
 
     return $row_actions;
 }
-
-add_filter( 'list_table_primary_column', 'wpinv_table_primary_column', 10, 2 );
-function wpinv_table_primary_column( $default, $screen_id ) {
-    if ( 'edit-wpi_invoice' === $screen_id ) {
-        return 'name';
-    }
-
-    return $default;
-}
-
-function wpinv_discount_bulk_actions( $actions, $display = false ) {
-    if ( !$display ) {
-        return array();
-    }
-
-    $actions = array(
-        'activate'   => __( 'Activate', 'invoicing' ),
-        'deactivate' => __( 'Deactivate', 'invoicing' ),
-        'delete'     => __( 'Delete', 'invoicing' ),
-    );
-    $two = '';
-    $which = 'top';
-    echo '</div><div class="alignleft actions bulkactions">';
-    echo '<label for="bulk-action-selector-' . esc_attr( $which ) . '" class="screen-reader-text">' . __( 'Select bulk action' ) . '</label>';
-    echo '<select name="action' . $two . '" id="bulk-action-selector-' . esc_attr( $which ) . "\">";
-    echo '<option value="-1">' . __( 'Bulk Actions' ) . "</option>";
-
-    foreach ( $actions as $name => $title ) {
-        $class = 'edit' === $name ? ' class="hide-if-no-js"' : '';
-
-        echo "" . '<option value="' . $name . '"' . $class . '>' . $title . "</option>";
-    }
-    echo "</select>";
-
-    submit_button( __( 'Apply' ), 'action', '', false, array( 'id' => "doaction$two" ) );
-
-    echo '</div><div class="alignleft actions">';
-}
-add_filter( 'bulk_actions-edit-wpi_discount', 'wpinv_discount_bulk_actions', 10 );
-
-function wpinv_disable_months_dropdown( $disable, $post_type ) {
-    if ( $post_type == 'wpi_discount' ) {
-        $disable = true;
-    }
-
-    return $disable;
-}
-add_filter( 'disable_months_dropdown', 'wpinv_disable_months_dropdown', 10, 2 );
 
 function wpinv_restrict_manage_posts() {
     global $typenow;
@@ -131,7 +118,6 @@ function wpinv_restrict_manage_posts() {
 add_action( 'restrict_manage_posts', 'wpinv_restrict_manage_posts', 10 );
 
 function wpinv_discount_filters() {
-    wpinv_discount_bulk_actions( array(), true );
 
     ?>
     <select name="discount_type" id="dropdown_wpinv_discount_type">
@@ -153,10 +139,10 @@ function wpinv_discount_filters() {
 }
 
 function wpinv_request( $vars ) {
-    global $typenow, $wp_query, $wp_post_statuses;
+    global $typenow, $wp_post_statuses;
 
     if ( getpaid_is_invoice_post_type( $typenow ) ) {
-        if ( !isset( $vars['post_status'] ) ) {
+        if ( ! isset( $vars['post_status'] ) ) {
             $post_statuses = wpinv_get_invoice_statuses( false, false, $typenow );
 
             foreach ( $post_statuses as $status => $value ) {
@@ -168,41 +154,6 @@ function wpinv_request( $vars ) {
             $vars['post_status'] = array_keys( $post_statuses );
         }
 
-        if ( isset( $vars['orderby'] ) ) {
-            if ( 'amount' == $vars['orderby'] ) {
-                $vars = array_merge(
-                    $vars,
-                    array(
-                        'meta_key' => '_wpinv_total',
-                        'orderby'  => 'meta_value_num'
-                    )
-                );
-            } else if ( 'customer' == $vars['orderby'] ) {
-                $vars = array_merge(
-                    $vars,
-                    array(
-                        'meta_key' => '_wpinv_first_name',
-                        'orderby'  => 'meta_value'
-                    )
-                );
-            } else if ( 'number' == $vars['orderby'] ) {
-                $vars = array_merge(
-                    $vars,
-                    array(
-                        'meta_key' => '_wpinv_number',
-                        'orderby'  => 'meta_value'
-                    )
-                );
-            } else if ( 'payment_date' == $vars['orderby'] ) {
-                $vars = array_merge(
-                    $vars,
-                    array(
-                        'meta_key' => '_wpinv_completed_date',
-                        'orderby'  => 'meta_value'
-                    )
-                );
-            }
-        }
     } else if ( 'wpi_discount' == $typenow ) {
         $meta_query = !empty( $vars['meta_query'] ) ? $vars['meta_query'] : array();
         // Filter vat rule type
@@ -222,59 +173,6 @@ function wpinv_request( $vars ) {
     return $vars;
 }
 add_filter( 'request', 'wpinv_request' );
-
-function wpinv_item_type_class( $classes, $class, $post_id ) {
-    global $pagenow, $typenow;
-
-    if ( $pagenow == 'edit.php' && $typenow == 'wpi_item' && get_post_type( $post_id ) == $typenow ) {
-        if ( $type = get_post_meta( $post_id, '_wpinv_type', true ) ) {
-            $classes[] = 'wpi-type-' . sanitize_html_class( $type );
-        }
-
-        if ( !wpinv_item_is_editable( $post_id ) ) {
-            $classes[] = 'wpi-editable-n';
-        }
-    }
-    return $classes;
-}
-add_filter( 'post_class', 'wpinv_item_type_class', 10, 3 );
-
-function wpinv_check_quick_edit() {
-    global $pagenow, $current_screen, $wpinv_item_screen;
-
-    if ( $pagenow == 'edit.php' && !empty( $current_screen->post_type ) ) {
-        if ( empty( $wpinv_item_screen ) ) {
-            if ( $current_screen->post_type == 'wpi_item' ) {
-                $wpinv_item_screen = 'y';
-            } else {
-                $wpinv_item_screen = 'n';
-            }
-        }
-
-        if ( $wpinv_item_screen == 'y' && $pagenow == 'edit.php' ) {
-            add_filter( 'post_row_actions', 'wpinv_item_disable_quick_edit', 10, 2 );
-            add_filter( 'page_row_actions', 'wpinv_item_disable_quick_edit', 10, 2 );
-        }
-    }
-}
-add_action( 'admin_head', 'wpinv_check_quick_edit', 10 );
-
-function wpinv_item_disable_quick_edit( $actions = array(), $row = null ) {
-    if ( isset( $actions['inline hide-if-no-js'] ) ) {
-        unset( $actions['inline hide-if-no-js'] );
-    }
-
-    if ( !empty( $row->post_type ) && $row->post_type == 'wpi_item' && !wpinv_item_is_editable( $row ) ) {
-        if ( isset( $actions['trash'] ) ) {
-            unset( $actions['trash'] );
-        }
-        if ( isset( $actions['delete'] ) ) {
-            unset( $actions['delete'] );
-        }
-    }
-
-    return $actions;
-}
 
 /**
  * Create a page and store the ID in an option.

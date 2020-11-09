@@ -10,108 +10,95 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( empty( $fields ) ) {
-    return;
+	return;
 }
+
+// A prefix for all ids (so that a form can be included in the same page multiple times).
+$uniqid = uniqid( '_' );
 
 // Prepare the user's country.
 $country = is_user_logged_in() ? get_user_meta( get_current_user_id(), '_wpinv_country', true ) : '';
+$country = empty( $country ) ? getpaid_get_ip_country() : $country;
 $country = empty( $country ) ? wpinv_get_default_country() : $country;
 
 // A prefix for all ids (so that a form can be included in the same page multiple times).
 $uniqid = uniqid( '_' );
 
-foreach ( $fields as $address_field ) {
+$address_type = empty( $address_type ) ? 'billing' : $address_type;
 
-    // Skip if it is hidden.
-    if ( empty( $address_field['visible'] ) ) {
-        continue;
-    }
+?>
 
-    $placeholder = empty( $address_field['placeholder'] ) ? '' : esc_attr( $address_field['placeholder'] );
-    $description = empty( $address_field['description'] ) ? '' : wp_kses_post( $address_field['description'] );
-    $value       = is_user_logged_in() ? get_user_meta( get_current_user_id(), '_' . $address_field['name'], true ) : '';
-    $label       = empty( $address_field['label'] ) ? '' : wp_kses_post( $address_field['label'] );
+<?php if ( 'both' === $address_type ) : ?>
 
-    if ( ! empty( $address_field['required'] ) ) {
-        $label .= "<span class='text-danger'> *</span>";
-    }
+	<!-- Start Billing/Shipping Address Title -->
+	<h4 class="mb-3 getpaid-shipping-billing-address-title">
+		<?php _e( 'Billing / Shipping Address', 'invoicing' ); ?>
+	</h4>
+	<!-- End Billing Address Title -->
 
-    // Display the country.
-    if ( 'wpinv_country' == $address_field['name'] ) {
+	<!-- Start Billing Address Title -->
+	<h4 class="mb-3 getpaid-billing-address-title">
+		<?php _e( 'Billing Address', 'invoicing' ); ?>
+	</h4>
+	<!-- End Billing Address Title -->
 
-        echo aui()->select( array(
-            'options'          => wpinv_get_country_list(),
-            'name'             => 'wpinv_country',
-            'id'               => 'wpinv_country' . $uniqid,
-            'value'            => sanitize_text_field( $country ),
-            'placeholder'      => $placeholder,
-            'required'         => ! empty( $address_field['required'] ),
-            'label'            => wp_kses_post( $label ),
-            'label_type'       => 'vertical',
-            'help_text'        => $description,
-            'class'            => 'wpinv_country',
-        ));
-        continue;
+<?php endif; ?>
 
-    }
 
-    // Display the state.
-    if ( 'wpinv_state' == $address_field['name'] ) {
+<?php if ( 'both' === $address_type || 'billing' === $address_type ) : ?>
 
-        $states = wpinv_get_country_states( $country );
+	<!-- Start Billing Address -->
+	<div class="getpaid-billing-address-wrapper">
+		<?php
+			$field_type = 'billing';
+			include plugin_dir_path( __FILE__ ) . 'address-fields.php';
+		?>
+	</div>
+	<!-- End Billing Address -->
 
-        if ( empty( $value ) ) {
-            $value = wpinv_get_default_state();
-        }
+<?php endif; ?>
 
-        if ( ! empty( $states ) ) {
 
-            echo aui()->select( array(
-                'options'          => $states,
-                'name'             => 'wpinv_state',
-                'id'               => 'wpinv_state' . $uniqid,
-                'value'            => sanitize_text_field( $value ),
-                'placeholder'      => $placeholder,
-                'required'         => ! empty( $address_field['required'] ),
-                'label'            => wp_kses_post( $label ),
-                'label_type'       => 'vertical',
-                'help_text'        => $description,
-                'class'            => 'wpinv_state',
-            ));
+<?php if ( 'both' === $address_type ) : ?>
 
-            continue;
 
-        }
-        
-        echo aui()->input(
-            array(
-                'name'       => 'wpinv_state',
-                'id'         => 'wpinv_state' . $uniqid,
-                'placeholder'=> $placeholder,
-                'required'   => ! empty( $address_field['required'] ),
-                'label'      => wp_kses_post( $label ),
-                'label_type' => 'vertical',
-                'help_text'  => $description,
-                'value'      => $value,
-                'class'      => 'wpinv_state',
-            )
-        );
-        continue;
-    }
+	<?php
+		
+		echo aui()->input(
+		    array(
+			    'type'       => 'checkbox',
+			    'name'       => 'same-shipping-address',
+			    'id'         => "shipping-toggle$uniqid",
+			    'required'   => false,
+			    'label'      => wp_kses_post( $shipping_address_toggle ),
+			    'value'      => 1,
+			    'checked'    => true,
+		    )
+		);
 
-    echo aui()->input(
-        array(
-            'name'       => esc_attr( $address_field['name'] ),
-            'id'         => esc_attr( $address_field['name'] ) . $uniqid,
-            'required'   => ! empty( $address_field['required'] ),
-            'placeholder'=> $placeholder,
-            'label'      => wp_kses_post( $label ),
-            'label_type' => 'vertical',
-            'help_text'  => $description,
-            'type'       => 'text',
-            'value'      => $value,
-            'class'      => esc_attr( $address_field['name'] ),
-        )
-    );
+	?>
 
-}
+
+	<!-- Start Shipping Address Title -->
+	<h4 class="mb-3 getpaid-shipping-address-title">
+		<?php _e( 'Shipping Address', 'invoicing' ); ?>
+	</h4>
+	<!-- End Shipping Address Title -->
+
+
+<?php endif; ?>
+
+
+	
+<?php if ( 'both' === $address_type || 'shipping' === $address_type ) : ?>
+
+	<!-- Start Shipping Address -->
+	<div class="getpaid-shipping-address-wrapper">
+		<?php
+			$field_type = 'shipping';
+			include plugin_dir_path( __FILE__ ) . 'address-fields.php';
+		?>
+	</div>
+	<!-- End Shipping Address -->
+
+<?php endif; ?>

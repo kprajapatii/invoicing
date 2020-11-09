@@ -24,7 +24,7 @@ if ( ! $form->is_active() ) {
 do_action( 'getpaid_before_payment_form', $form );
 ?>
 
-<form class='getpaid-payment-form bsui' method='POST' data-key='<?php echo uniqid('gpf'); ?>'>
+<form class='getpaid-payment-form getpaid-payment-form-<?php echo absint( $form->get_id() ); ?> bsui' method='POST' data-key='<?php echo uniqid('gpf'); ?>'>
 
 
     <?php 
@@ -47,13 +47,28 @@ do_action( 'getpaid_before_payment_form', $form );
         do_action( 'getpaid_payment_form_before_elements', $form );
 
         // Display the elements.
-        foreach ( $form->get_elements() as $element ) {
-            if ( isset( $element['type'] ) ) {
-                do_action( 'getpaid_payment_form_element', $element, $form );
-                do_action( "getpaid_payment_form_element_{$element['type']}_template", $element, $form );
-            }
-        }
+        ?>
+        <div class="container-fluid">
+            <div class="row">
+                <?php
 
+                    foreach ( $form->get_elements() as $element ) {
+
+                        if ( isset( $element['type'] ) ) {
+                            $grid_class = esc_attr( getpaid_get_form_element_grid_class( $element ) );
+                            echo "<div class='$grid_class'>";
+                            do_action( 'getpaid_payment_form_element', $element, $form );
+                            do_action( "getpaid_payment_form_element_{$element['type']}_template", $element, $form );
+                            echo "</div>";
+                        }
+
+                    }
+
+                ?>
+            </div>
+        </div>
+
+        <?php
         // Fires after displaying payment form elements.
         do_action( 'getpaid_payment_form_after_elements', $form );
 

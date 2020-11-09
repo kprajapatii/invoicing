@@ -12,6 +12,10 @@ class ComposerStaticInit8b6d4385c391849a80038f0b0e87c8b5
     );
 
     public static $prefixLengthsPsr4 = array (
+        'M' => 
+        array (
+            'MaxMind\\Db\\' => 11,
+        ),
         'C' => 
         array (
             'Composer\\Installers\\' => 20,
@@ -19,6 +23,10 @@ class ComposerStaticInit8b6d4385c391849a80038f0b0e87c8b5
     );
 
     public static $prefixDirsPsr4 = array (
+        'MaxMind\\Db\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/maxmind-db/reader/src/MaxMind/Db',
+        ),
         'Composer\\Installers\\' => 
         array (
             0 => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers',
@@ -27,6 +35,7 @@ class ComposerStaticInit8b6d4385c391849a80038f0b0e87c8b5
 
     public static $classMap = array (
         'AyeCode_Connect_Helper' => __DIR__ . '/..' . '/ayecode/ayecode-connect-helper/ayecode-connect-helper.php',
+        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'WP_Super_Duper' => __DIR__ . '/..' . '/ayecode/wp-super-duper/wp-super-duper.php',
     );
 
