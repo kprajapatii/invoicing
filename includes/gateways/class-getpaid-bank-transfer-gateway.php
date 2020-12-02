@@ -19,13 +19,20 @@ class GetPaid_Bank_Transfer_Gateway extends GetPaid_Payment_Gateway {
 	 */
     public $id = 'bank_transfer';
 
+	/**
+	 * An array of features that this gateway supports.
+	 *
+	 * @var array
+	 */
+	protected $supports = array( 'addons' );
+
     /**
 	 * Payment method order.
 	 *
 	 * @var int
 	 */
 	public $order = 8;
-    
+
     /**
 	 * Class constructor.
 	 */
@@ -39,6 +46,7 @@ class GetPaid_Bank_Transfer_Gateway extends GetPaid_Payment_Gateway {
 
 		add_action( 'wpinv_receipt_end', array( $this, 'thankyou_page' ) );
 		add_action( 'getpaid_invoice_line_items', array( $this, 'thankyou_page' ), 40 );
+		add_action( 'wpinv_pdf_content_billing', array( $this, 'thankyou_page' ), 11 );
 		add_action( 'wpinv_email_invoice_details', array( $this, 'email_instructions' ), 10, 3 );
 
     }
@@ -88,13 +96,13 @@ class GetPaid_Bank_Transfer_Gateway extends GetPaid_Payment_Gateway {
 			}
 
 			$this->bank_details( $invoice );
-			
+
 			echo '</div>';
-        
+
         }
 
 	}
-    
+
     /**
 	 * Add content to the WPI emails.
 	 *
@@ -309,6 +317,23 @@ class GetPaid_Bank_Transfer_Gateway extends GetPaid_Payment_Gateway {
         );
 
 		return $admin_settings;
+	}
+
+	/**
+	 * Processes invoice addons.
+	 *
+	 * @param WPInv_Invoice $invoice
+	 * @param GetPaid_Form_Item[] $items
+	 * @return WPInv_Invoice
+	 */
+	public function process_addons( $invoice, $items ) {
+
+        foreach ( $items as $item ) {
+            $invoice->add_item( $item );
+        }
+
+        $invoice->recalculate_total();
+        $invoice->save();
 	}
 
 }

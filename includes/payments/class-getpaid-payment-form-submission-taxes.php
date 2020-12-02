@@ -18,18 +18,6 @@ class GetPaid_Payment_Form_Submission_Taxes {
 	 */
 	public $taxes = array();
 
-	/**
-	 * Initial tax.
-	 * @var float
-	 */
-	protected $initial_tax = 0;
-
-	/**
-	 * Recurring tax.
-	 * @var float
-	 */
-	protected $recurring_tax = 0;
-
     /**
 	 * Class constructor
 	 *
@@ -46,15 +34,8 @@ class GetPaid_Payment_Form_Submission_Taxes {
 
 		// Process any existing invoice taxes.
 		if ( $submission->has_invoice() ) {
-			$this->taxes = $submission->get_invoice()->get_taxes();
+			$this->taxes = array_replace( $submission->get_invoice()->get_taxes(), $this->taxes );
 		}
-
-		// Add VAT.
-		$this->taxes['vat'] = array(
-			'name'          => 'vat',
-			'initial_tax'   => $this->initial_tax,
-			'recurring_tax' => $this->recurring_tax,
-		);
 
 	}
 
@@ -67,18 +48,23 @@ class GetPaid_Payment_Form_Submission_Taxes {
 	 */
 	public function process_item_tax( $item, $submission ) {
 
-		$rate     = wpinv_get_tax_rate( $submission->country, $submission->state, $item->get_id() );
-		$price    = $item->get_sub_total();
-		$item_tax = $price * $rate * 0.01;
+		$rates    = getpaid_get_item_tax_rates( $item, $submission->country, $submission->state );
+		$rates    = getpaid_filter_item_tax_rates( $item, $rates );
+		$taxes    = getpaid_calculate_item_taxes( $item->get_sub_total(), $rates );
+		$r_taxes  = getpaid_calculate_item_taxes( $item->get_recurring_sub_total(), $rates );
 
-		if ( wpinv_prices_include_tax() ) {
-			$item_tax = $price - ( $price - $price * $rate * 0.01 );
-		}
+		foreach ( $taxes as $name => $amount ) {
+			$recurring = isset( $r_taxes[ $name ] ) ? $r_taxes[ $name ] : 0;
+			$tax       = getpaid_prepare_item_tax( $item, $name, $amount, $recurring );
 
-		$this->initial_tax += $item_tax;
+			if ( ! isset( $this->taxes[ $name ] ) ) {
+				$this->taxes[ $name ] = $tax;
+				continue;
+			}
 
-		if ( $item->is_recurring() ) {
-			$this->recurring_tax += $item_tax;
+			$this->taxes[ $name ]['initial_tax']   += $tax['initial_tax'];
+			$this->taxes[ $name ]['recurring_tax'] += $tax['recurring_tax'];
+
 		}
 
 	}
@@ -174,7 +160,7 @@ class GetPaid_Payment_Form_Submission_Taxes {
 	}
 
 	/**
-	 * Checks if we requires a VAT number.
+	 * Checks if we require a VAT number.
 	 *
 	 * @param bool $ip_in_eu Whether the customer IP is from the EU
 	 * @param bool $country_in_eu Whether the customer country is from the EU
@@ -198,43 +184,36 @@ class GetPaid_Payment_Form_Submission_Taxes {
 	 */
 	public function validate_vat( $submission ) {
 
-		$has_digital = $this->has_digital_item( $submission );
-		$in_eu       = $this->is_eu_transaction( $submission->country );
+		$in_eu = $this->is_eu_transaction( $submission->country );
 
 		// Abort if we are not validating vat numbers.
-		if ( ! $has_digital && ! $in_eu ) {
+		if ( ! $in_eu ) {
             return;
 		}
 
 		// Prepare variables.
 		$vat_number  = $this->get_vat_number( $submission );
-		$company     = $this->get_company( $submission );
 		$ip_country  = getpaid_get_ip_country();
         $is_eu       = $this->is_eu_country( $submission->country );
         $is_ip_eu    = $this->is_eu_country( $ip_country );
 
-		// If we're preventing business to consumer purchases, ensure
+		// If we're preventing business to consumer purchases,
 		if ( $this->requires_vat( $is_ip_eu, $is_eu ) && empty( $vat_number ) ) {
 
 			// Ensure that a vat number has been specified.
 			throw new Exception(
-				wp_sprintf(
-					__( 'Please enter your %s number to verify your purchase is by an EU business.', 'invoicing' ),
-					getpaid_vat_name()
-				)
+				__( 'Please enter your VAT number to verify your purchase is by an EU business.', 'invoicing' )
 			);
 
 		}
 
 		// Abort if we are not validating vat (vat number should exist, user should be in eu and business too).
-		if ( ! $is_eu || ! $in_eu || empty( $vat_number ) ) {
+		if ( ! $in_eu ) {
             return;
 		}
 
-		$is_valid = WPInv_EUVat::validate_vat_number( $vat_number, $company, $submission->country );
-
-		if ( is_string( $is_valid ) ) {
-			throw new Exception( $is_valid );
+		if ( ! wpinv_validate_vat_number( $vat_number, $submission->country ) ) {
+			throw new Exception( __( 'Your VAT number is invalid', 'invoicing' ) );
 		}
 
 	}

@@ -1,38 +1,5 @@
-
-.wpi-form .blockUI.blockMsg,
-.wpinv-page .blockUI.blockMsg  {
-	background-color: transparent !important;
-	border: none !important;
-}
-
-.wpinv-receipt-details .getpaid-invoice-meta-data th {
-	width: 40%;
-	font-weight: 500;
-}
-
 .wpinv-receipt-details .getpaid-invoice-meta-status-value .d-inline-block {
 	line-height: 1 !important;
-}
-
-.wpinv-receipt-details .label {
-	font-size: inherit;
-}
-.wpinv-receipt-details .tr-total td {
-	background-color: #f7f7f7;
-}
-.wpinv_cart_total_row td,
-.wpinv_cart_total_row th {
-	background-color: #f7f7f7;
-}
-
-#wpinv_adddress_confirm.wpi-vat-info {
-	margin-left: 0;
-	margin-right: 0;
-	padding: 0;
-}
-#wpinv_adddress_confirm.wpi-vat-info #wpinv-fields-box {
-	min-height: auto;
-	padding: 15px;
 }
 
 .wpinv-success .wpinv-receipt-details .table th,
@@ -53,7 +20,6 @@
 	.wpinv-success .wpinv-bank-details .table th {
 		width: 45%!important;
 	}
-	#wpinv-fields p.wpi-cart-field.wpi-col2 {width: 100%;float: none;padding: 0;margin-bottom: 10px;}
 }
 
 input[type="number"].getpaid-item-quantity-input,

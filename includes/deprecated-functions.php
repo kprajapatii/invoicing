@@ -1154,3 +1154,87 @@ function getpaid_ip_location_url() {}
  * @deprecated
  */
 function getpaid_geolocate_ip_address() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_validate_url_token() {
+    return false;
+}
+
+/**
+ * @deprecated
+ */
+function wpinv_get_item_token() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_item_in_cart() {
+    return false;
+}
+
+/**
+ * @deprecated
+ */
+function wpinv_html_date_field() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_get_formatted_tax_rate() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_get_cart_item_tax() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_cart_item_price() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_cart_item_subtotal() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_cart_item_tax() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_calculate_tax() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_get_tax_rate() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_eu_fallback_rate_callback() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_vat_number_callback() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_vat_rate_add_callback() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_vat_rate_delete_callback() {}
+
+/**
+ * @deprecated
+ */
+function wpinv_vat_rates_callbacks() {}

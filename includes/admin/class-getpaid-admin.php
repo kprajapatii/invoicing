@@ -25,7 +25,14 @@ class GetPaid_Admin {
 	 *
 	 * @var         string
 	 */
-    public $admin_url;
+	public $admin_url;
+	
+	/**
+	 * Reports components.
+	 *
+	 * @var GetPaid_Reports
+	 */
+    public $reports;
 
     /**
 	 * Class constructor.
@@ -33,7 +40,8 @@ class GetPaid_Admin {
 	public function __construct(){
 
         $this->admin_path  = plugin_dir_path( __FILE__ );
-        $this->admin_url   = plugins_url( '/', __FILE__ );
+		$this->admin_url   = plugins_url( '/', __FILE__ );
+		$this->reports     = new GetPaid_Reports();
 
         if ( is_admin() ) {
 			$this->init_admin_hooks();
@@ -54,6 +62,7 @@ class GetPaid_Admin {
 		add_action( 'admin_notices', array( $this, 'show_notices' ) );
 		add_action( 'getpaid_authenticated_admin_action_send_invoice', array( $this, 'send_customer_invoice' ) );
 		add_action( 'getpaid_authenticated_admin_action_send_invoice_reminder', array( $this, 'send_customer_payment_reminder' ) );
+        add_action( 'getpaid_authenticated_admin_action_reset_tax_rates', array( $this, 'admin_reset_tax_rates' ) );
 		do_action( 'getpaid_init_admin_hooks', $this );
 
     }
@@ -79,7 +88,6 @@ class GetPaid_Admin {
             $version = filemtime( WPINV_PLUGIN_DIR . 'assets/css/admin.css' );
             wp_enqueue_style( 'wpinv_admin_style', WPINV_PLUGIN_URL . 'assets/css/admin.css', array( 'wp-color-picker' ), $version );
             wp_enqueue_style( 'select2', WPINV_PLUGIN_URL . 'assets/css/select2/select2.min.css', array(), '4.0.13', 'all' );
-            wp_enqueue_style( 'wp_enqueue_style', WPINV_PLUGIN_URL . 'assets/css/meta-box.css', array(), WPINV_VERSION );
             wp_enqueue_style( 'jquery-ui-css', WPINV_PLUGIN_URL . 'assets/css/jquery-ui.min.css', array(), '1.8.16' );
 
             // Scripts.
@@ -96,15 +104,6 @@ class GetPaid_Admin {
 		if ( 'wpi_payment_form' == $page && $editing ) {
             $this->load_payment_form_scripts();
         }
-
-        if ( $page == 'wpinv-subscriptions' ) {
-			wp_register_script( 'wpinv-sub-admin-script', WPINV_PLUGIN_URL . 'assets/js/subscriptions.js', array( 'wpinv-admin-script' ),  WPINV_VERSION );
-			wp_enqueue_script( 'wpinv-sub-admin-script' );
-		}
-
-		if ( $page == 'wpinv-reports' ) {
-			wp_enqueue_script( 'jquery-flot', WPINV_PLUGIN_URL . 'assets/js/jquery.flot.min.js', array( 'jquery' ), '0.7' );
-		}
 
 		if ( $page == 'wpinv-subscriptions' ) {
 			wp_enqueue_script( 'postbox' );
@@ -323,6 +322,18 @@ class GetPaid_Admin {
 
 		wp_safe_redirect( remove_query_arg( array( 'getpaid-admin-action', 'getpaid-nonce', 'invoice_id' ) ) );
 		exit;
+	}
+
+	/**
+     * Resets tax rates.
+	 * 
+     */
+    public function admin_reset_tax_rates() {
+
+		update_option( 'wpinv_tax_rates', wpinv_get_data( 'tax-rates' ) );
+		wp_safe_redirect( remove_query_arg( array( 'getpaid-admin-action', 'getpaid-nonce' ) ) );
+		exit;
+
 	}
 
     /**

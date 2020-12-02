@@ -592,13 +592,27 @@ class WPInv_Invoice extends GetPaid_Data {
 	}
 
 	/**
-	 * @deprecated
+	 * Returns the post type name.
+	 *
+	 * @since 1.0.19
+	 * @return string
 	 */
 	public function get_invoice_quote_type() {
-        ucfirst( $this->get_type() );
+        return getpaid_get_post_type_label( $this->get_post_type(), false );
     }
 
     /**
+	 * Get the invoice post type label.
+	 *
+	 * @since 1.0.19
+	 * @param  string $context View or edit context.
+	 * @return string
+	 */
+	public function get_label( $context = 'view' ) {
+        return getpaid_get_post_type_label( $this->get_post_type( $context ), false );
+	}
+
+	/**
 	 * Get the invoice post type.
 	 *
 	 * @since 1.0.19
@@ -1345,7 +1359,7 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @return float
 	 */
 	public function get_total_discount( $context = 'view' ) {
-		return (float) $this->get_prop( 'total_discount', $context );
+		return wpinv_round_amount( wpinv_sanitize_amount( $this->get_prop( 'total_discount', $context ) ) );
     }
 
     /**
@@ -1356,7 +1370,7 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @return float
 	 */
 	public function get_total_tax( $context = 'view' ) {
-		return (float) $this->get_prop( 'total_tax', $context );
+		return wpinv_round_amount( wpinv_sanitize_amount( $this->get_prop( 'total_tax', $context ) ) );
 	}
 
 	/**
@@ -1380,7 +1394,7 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @return float
 	 */
 	public function get_total_fees( $context = 'view' ) {
-		return (float) $this->get_prop( 'total_fees', $context );
+		return wpinv_round_amount( wpinv_sanitize_amount( $this->get_prop( 'total_fees', $context ) ) );
     }
 
     /**
@@ -1438,6 +1452,7 @@ class WPInv_Invoice extends GetPaid_Data {
 			$total = 0;
 		}
 
+		$total = wpinv_round_amount( wpinv_sanitize_amount( $total ) );
         return apply_filters( 'wpinv_get_initial_invoice_total', $total, $this );
 	}
 
@@ -1464,6 +1479,7 @@ class WPInv_Invoice extends GetPaid_Data {
 			$total = 0;
 		}
 
+		$total = wpinv_round_amount( wpinv_sanitize_amount( $total ) );
         return apply_filters( 'wpinv_get_recurring_invoice_total', $total, $this );
 	}
 
@@ -1547,6 +1563,16 @@ class WPInv_Invoice extends GetPaid_Data {
 	 */
 	public function get_items( $context = 'view' ) {
         return $this->get_prop( 'items', $context );
+	}
+	
+	/**
+	 * Get the invoice item ids.
+	 *
+	 * @since 1.0.19
+	 * @return string
+	 */
+	public function get_item_ids() {
+		return implode( ', ', wp_list_pluck( $this->get_cart_details(), 'item_id' ) );
     }
 
     /**
@@ -1702,7 +1728,7 @@ class WPInv_Invoice extends GetPaid_Data {
         $items        = $this->get_items();
         $cart_details = array();
 
-        foreach ( $items as $item_id => $item ) {
+        foreach ( $items as $item ) {
 			$item->invoice_id = $this->get_id();
             $cart_details[]   = $item->prepare_data_for_saving();
         }
@@ -2114,8 +2140,8 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @param  string $value mode.
 	 */
 	public function set_mode( $value ) {
-        if ( ! in_array( $value, array( 'live', 'test' ) ) ) {
-            $this->set_prop( 'value', $value );
+        if ( in_array( $value, array( 'live', 'test' ) ) ) {
+            $this->set_prop( 'mode', $value );
         }
     }
 
@@ -3477,8 +3503,8 @@ class WPInv_Invoice extends GetPaid_Data {
 	/**
 	 * @deprecated
 	 */
-    public function recalculate_totals( $temp = false ) {
-        $this->update_items( $temp );
+    public function recalculate_totals() {
+        $this->recalculate_total();
         $this->save( true );
         return $this;
     }

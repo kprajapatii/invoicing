@@ -579,6 +579,17 @@ function getpaid_hidden_field( $name, $value ) {
     echo "<input type='hidden' name='$name' value='$value' />";
 }
 
+/**
+ * Displays a submit field.
+ */
+function getpaid_submit_field( $value, $name = 'submit', $class = 'btn-primary' ) {
+    $name  = sanitize_text_field( $name );
+    $value = esc_attr( $value );
+    $class = esc_attr( $class );
+
+    echo "<input type='submit' name='$name' value='$value' class='btn $class' />";
+}
+
 function wpinv_html_text( $args = array() ) {
     // Backwards compatibility
     if ( func_num_args() > 1 ) {
@@ -637,16 +648,6 @@ function wpinv_html_text( $args = array() ) {
     $output .= '</span>';
 
     return $output;
-}
-
-function wpinv_html_date_field( $args = array() ) {
-    if( empty( $args['class'] ) ) {
-        $args['class'] = 'wpiDatepicker';
-    } elseif( ! strpos( $args['class'], 'wpiDatepicker' ) ) {
-        $args['class'] .= ' wpiDatepicker';
-    }
-
-    return wpinv_html_text( $args );
 }
 
 function wpinv_html_textarea( $args = array() ) {
@@ -946,7 +947,6 @@ function wpinv_display_style() {
     wp_register_style( 'wpinv-single-style', WPINV_PLUGIN_URL . 'assets/css/invoice.css', array(), filemtime( WPINV_PLUGIN_DIR . 'assets/css/invoice.css' ) );
 
     // Load required styles
-    wp_print_styles( 'open-sans' );
     wp_print_styles( 'wpinv-single-style' );
     wp_print_styles( 'ayecode-ui' );
 

@@ -25,6 +25,7 @@ class GetPaid_Post_Types_Admin {
 
 		// Filter post actions.
 		add_filter( 'post_row_actions', 'GetPaid_Post_Types_Admin::post_row_actions', 10, 2 );
+		add_filter( 'post_row_actions', 'GetPaid_Post_Types_Admin::filter_invoice_row_actions', 90, 2 );
 
 		// Invoice table columns.
 		add_filter( 'manage_wpi_invoice_posts_columns', array( __CLASS__, 'invoice_columns' ), 100 );
@@ -107,6 +108,62 @@ class GetPaid_Post_Types_Admin {
 	}
 
 	/**
+     * Remove bulk edit option from admin side quote listing
+     *
+     * @since    1.0.0
+     * @param array $actions post actions
+	 * @param WP_Post $post
+     * @return array $actions actions without edit option
+     */
+    public static function filter_invoice_row_actions( $actions, $post ) {
+
+        if ( getpaid_is_invoice_post_type( $post->post_type ) ) {
+
+			$actions = array();
+			$invoice = new WPInv_Invoice( $post );
+
+			$actions['edit'] =  sprintf(
+				'<a href="%1$s">%2$s</a>',
+				esc_url( get_edit_post_link( $invoice->get_id() ) ),
+				esc_html( __( 'Edit', 'invoicing' ) )
+			);
+
+			if ( ! $invoice->is_draft() ) {
+
+				$actions['view'] =  sprintf(
+					'<a href="%1$s">%2$s</a>',
+					esc_url( $invoice->get_view_url() ),
+					sprintf(
+						esc_html( __( 'View %s', 'invoicing' ) ),
+						getpaid_get_post_type_label( $invoice->get_post_type(), false )
+					)
+				);
+
+				$actions['send'] =  sprintf(
+					'<a href="%1$s">%2$s</a>',
+					esc_url(
+						wp_nonce_url(
+							add_query_arg(
+								array(
+									'getpaid-admin-action' => 'send_invoice',
+									'invoice_id'           => $invoice->get_id()
+								)
+							),
+							'getpaid-nonce',
+							'getpaid-nonce'
+						)
+					),
+					esc_html( __( 'Send to Customer', 'invoicing' ) )
+				);
+
+			}
+
+        }
+
+        return $actions;
+	}
+
+	/**
 	 * Returns an array of invoice table columns.
 	 */
 	public static function invoice_columns( $columns ) {
@@ -119,7 +176,6 @@ class GetPaid_Post_Types_Admin {
 			'amount'            => __( 'Amount', 'invoicing' ),
 			'recurring'         => __( 'Recurring', 'invoicing' ),
 			'status'            => __( 'Status', 'invoicing' ),
-			'wpi_actions'       => __( 'Actions', 'invoicing' ),
 		);
 
 		return apply_filters( 'wpi_invoice_table_columns', $columns );
@@ -239,33 +295,6 @@ class GetPaid_Post_Types_Admin {
 
 				break;
 
-			case 'wpi_actions' :
-
-				if ( $invoice->is_draft() ) {
-					return;
-				}
-
-				$url    = esc_url( $invoice->get_view_url() );
-				$print  = esc_attr__( 'Print invoice', 'invoicing' );
-				echo "&nbsp;<a href='$url' title='$print' target='_blank' style='color:#757575'><i class='fa fa-print' style='font-size: 1.4em;'></i></a>";
-
-				$url    = esc_url(
-					wp_nonce_url(
-						add_query_arg(
-							array(
-								'getpaid-admin-action' => 'send_invoice',
-								'invoice_id'           => $invoice->get_id()
-							)
-						),
-						'getpaid-nonce',
-						'getpaid-nonce'
-					)
-				);
-
-				$send   = esc_attr__( 'Send invoice to customer', 'invoicing' );
-				echo "&nbsp;&nbsp;<a href='$url' title='$send' style='color:#757575'><i class='fa fa-envelope' style='font-size: 1.4em;'></i></a>";
-
-				break;
 		}
 
 	}
@@ -415,7 +444,6 @@ class GetPaid_Post_Types_Admin {
 	 * Returns an array of items table columns.
 	 */
 	public static function item_columns( $columns ) {
-		global $wpinv_euvat;
 
 		$columns = array(
 			'cb'                => $columns['cb'],
@@ -427,11 +455,8 @@ class GetPaid_Post_Types_Admin {
 			'shortcode'         => __( 'Shortcode', 'invoicing' ),
 		);
 
-		if ( ! $wpinv_euvat->allow_vat_rules() ) {
+		if ( ! wpinv_use_taxes() ) {
 			unset( $columns['vat_rule'] );
-		}
-
-		if ( ! $wpinv_euvat->allow_vat_classes() ) {
 			unset( $columns['vat_class'] );
 		}
 
@@ -459,8 +484,7 @@ class GetPaid_Post_Types_Admin {
 	 * Displays items table columns.
 	 */
 	public static function display_item_columns( $column_name, $post_id ) {
-		global $wpinv_euvat;
-
+ 
 		$item = new WPInv_Item( $post_id );
 
 		switch ( $column_name ) {
@@ -489,11 +513,11 @@ class GetPaid_Post_Types_Admin {
 				break;
 
 			case 'vat_rule' :
-				echo $wpinv_euvat->item_rule_label( $item->get_id() );
+				echo getpaid_get_tax_rule_label( $item->get_vat_rule() );
 				break;
 
 			case 'vat_class' :
-				echo $wpinv_euvat->item_class_label( $item->get_id() );
+				echo getpaid_get_tax_class_label( $item->get_vat_class() );
 				break;
 
 			case 'shortcode' :
@@ -512,7 +536,6 @@ class GetPaid_Post_Types_Admin {
 	 * Lets users filter items using taxes.
 	 */
 	public static function add_item_filters( $post_type ) {
-		$wpinv_euvat = getpaid_tax();
 
 		// Abort if we're not dealing with items.
 		if ( $post_type != 'wpi_item' ) {
@@ -520,11 +543,11 @@ class GetPaid_Post_Types_Admin {
 		}
 
 		// Filter by vat rules.
-		if ( $wpinv_euvat->allow_vat_rules() ) {
+		if ( wpinv_use_taxes() ) {
 	
 			// Sanitize selected vat rule.
 			$vat_rule   = '';
-			$vat_rules  = $wpinv_euvat->get_rules();
+			$vat_rules  = getpaid_get_tax_rules();
 			if ( isset( $_GET['vat_rule'] ) ) {
 				$vat_rule   =  $_GET['vat_rule'];
 			}
@@ -543,19 +566,14 @@ class GetPaid_Post_Types_Admin {
 					'selected'         => in_array( $vat_rule, array_keys( $vat_rules ) ) ? $vat_rule : '',
 					'show_option_all'  => false,
 					'show_option_none' => false,
-					'class'            => 'gdmbx2-text-medium',
 				)
 			);
 
 			// Filter by VAT class.
-		}
-
-		// Filter by vat class.
-		if ( $wpinv_euvat->allow_vat_classes() ) {
 	
 			// Sanitize selected vat rule.
 			$vat_class   = '';
-			$vat_classes = $wpinv_euvat->get_all_classes();
+			$vat_classes = getpaid_get_tax_classes();
 			if ( isset( $_GET['vat_class'] ) ) {
 				$vat_class   =  $_GET['vat_class'];
 			}
@@ -573,7 +591,6 @@ class GetPaid_Post_Types_Admin {
 					'selected'         => in_array( $vat_class, array_keys( $vat_classes ) ) ? $vat_class : '',
 					'show_option_all'  => false,
 					'show_option_none' => false,
-					'class'            => 'gdmbx2-text-medium',
 				)
 			);
 
@@ -598,7 +615,6 @@ class GetPaid_Post_Types_Admin {
 				'selected'         => in_array( $type, wpinv_item_types() ) ? $type : '',
 				'show_option_all'  => false,
 				'show_option_none' => false,
-				'class'            => 'gdmbx2-text-medium',
 			)
 		);
 

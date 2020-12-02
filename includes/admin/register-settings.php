@@ -333,21 +333,19 @@ function wpinv_settings_sanitize_tax_rates( $input ) {
         return $input;
     }
 
-    $new_rates = !empty( $_POST['tax_rates'] ) ? array_values( $_POST['tax_rates'] ) : array();
-
+    $new_rates = ! empty( $_POST['tax_rates'] ) ? array_values( $_POST['tax_rates'] ) : array();
     $tax_rates = array();
 
-    if ( !empty( $new_rates ) ) {
-        foreach ( $new_rates as $rate ) {
-            if ( isset( $rate['country'] ) && empty( $rate['country'] ) && empty( $rate['state'] ) ) {
-                continue;
-            }
-            
-            $rate['rate'] = wpinv_sanitize_amount( $rate['rate'], 4 );
-            
-            $tax_rates[] = $rate;
-        }
-    }
+    foreach ( $new_rates as $rate ) {
+
+		$rate['rate']    = wpinv_sanitize_amount( $rate['rate'] );
+		$rate['name']    = sanitize_text_field( $rate['name'] );
+		$rate['state']   = sanitize_text_field( $rate['state'] );
+		$rate['country'] = sanitize_text_field( $rate['country'] );
+		$rate['global']  = empty( $rate['state'] );
+		$tax_rates[]     = $rate;
+
+	}
 
     update_option( 'wpinv_tax_rates', $tax_rates );
 
@@ -403,8 +401,9 @@ function wpinv_get_registered_settings_sections() {
             'main' => __( 'Gateway Settings', 'invoicing' ),
         ) ),
         'taxes' => apply_filters( 'wpinv_settings_sections_taxes', array(
-            'main' => __( 'Tax Settings', 'invoicing' ),
-            'rates' => __( 'Tax Rates', 'invoicing' ),
+            'main'  => __( 'Tax Settings', 'invoicing' ),
+			'rates' => __( 'Tax Rates', 'invoicing' ),
+			'vat'   => __( 'EU VAT Settings', 'invoicing' )
         ) ),
         'emails' => apply_filters( 'wpinv_settings_sections_emails', array(
             'main' => __( 'Email Settings', 'invoicing' ),
@@ -474,28 +473,28 @@ function wpinv_hidden_callback( $args ) {
 	echo $html;
 }
 
+/**
+ * Displays a checkbox settings callback.
+ */
 function wpinv_checkbox_callback( $args ) {
-	global $wpinv_options;
-    
-    $sanitize_id = wpinv_sanitize_key( $args['id'] );
 
-	if ( isset( $args['faux'] ) && true === $args['faux'] ) {
-		$name = '';
-	} else {
-		$name = 'name="wpinv_settings[' . $sanitize_id . ']"';
-	}
+	$std = isset( $args['std'] ) ? $args['std'] : '';
+	$std = wpinv_get_option( $args['id'], $std );
+	$id  = esc_attr( $args['id'] );
 
-	$std     = isset( $args['std'] ) ? $args['std'] : 0;
-	$value   = isset( $wpinv_options[ $args['id'] ] ) ? $wpinv_options[ $args['id'] ] : $std;
-	$checked = checked( empty( $value ), false, false );
-
-	$html = '<input type="checkbox" id="wpinv_settings[' . $sanitize_id . ']"' . $name . ' value="1" ' . $checked . '/>';
-	$html .= '<label for="wpinv_settings[' . $sanitize_id . ']"> '  . wp_kses_post( $args['desc'] ) . '</label>';
-
-	echo $html;
+	getpaid_hidden_field( "wpinv_settings[$id]", '0' );
+	?>
+		<fieldset>
+			<label>
+				<input id="wpinv-settings-<?php echo $id; ?>" name="wpinv_settings[<?php echo $id; ?>]" <?php checked( empty( $std ), false ); ?> value="1" type="checkbox">
+				<?php echo wp_kses_post( $args['desc'] ); ?>
+			</label>
+		</fieldset>
+	<?php
 }
 
 function wpinv_multicheck_callback( $args ) {
+	
 	global $wpinv_options;
 
 	$sanitize_id = wpinv_sanitize_key( $args['id'] );
@@ -569,26 +568,40 @@ function wpinv_payment_icons_callback( $args ) {
 	}
 }
 
+/**
+ * Displays a radio settings field.
+ */
 function wpinv_radio_callback( $args ) {
-	global $wpinv_options;
-    
-    $sanitize_id = wpinv_sanitize_key( $args['id'] );
-    
-    foreach ( $args['options'] as $key => $option ) :
-		$sanitize_key = wpinv_sanitize_key( $key );
-        
-        $checked = false;
 
-		if ( isset( $wpinv_options[ $args['id'] ] ) && $wpinv_options[ $args['id'] ] == $key )
-			$checked = true;
-		elseif( isset( $args['std'] ) && $args['std'] == $key && ! isset( $wpinv_options[ $args['id'] ] ) )
-			$checked = true;
+	$std = isset( $args['std'] ) ? $args['std'] : '';
+	$std = wpinv_get_option( $args['id'], $std );
+	?>
+		<fieldset>
+			<ul id="wpinv-settings-<?php echo esc_attr( $args['id'] ); ?>" style="margin-top: 0;">
+				<?php foreach( $args['options'] as $key => $option ) : ?>
+					<li>
+						<label>
+							<input name="wpinv_settings[<?php echo esc_attr( $args['id'] ); ?>]" <?php checked( $std, $key ); ?> value="<?php echo esc_attr( $key ); ?>" type="radio">
+							<?php echo wp_kses_post( $option ); ?>
+						</label>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</fieldset>
+	<?php
+	getpaid_settings_description_callback( $args );
+}
 
-		echo '<input name="wpinv_settings[' . $sanitize_id . ']" id="wpinv_settings[' . $sanitize_id . '][' . $sanitize_key . ']" type="radio" value="' . $sanitize_key . '" ' . checked(true, $checked, false) . '/>&nbsp;';
-		echo '<label for="wpinv_settings[' . $sanitize_id . '][' . $sanitize_key . ']">' . esc_html( $option ) . '</label><br/>';
-	endforeach;
+/**
+ * Displays a description if available.
+ */
+function getpaid_settings_description_callback( $args ) {
 
-	echo '<p class="description">' . wp_kses_post( $args['desc'] ) . '</p>';
+	if ( ! empty( $args['desc'] ) ) {
+		$description = wp_kses_post( $args['desc'] );
+		echo "<p class='description'>$description</p>";
+	}
+
 }
 
 function wpinv_gateways_callback( $args ) {
@@ -896,113 +909,41 @@ function wpinv_country_states_callback($args) {
 	echo $html;
 }
 
-function wpinv_tax_rates_callback($args) {
-	global $wpinv_options;
-	$rates = wpinv_get_tax_rates();
-	ob_start(); ?>
-    </td><tr>
-    <td colspan="2" class="wpinv_tax_tdbox">
-	<p><?php echo $args['desc']; ?></p>
-	<table id="wpinv_tax_rates" class="wp-list-table widefat fixed posts">
-		<thead>
-			<tr>
-				<th scope="col" class="wpinv_tax_country"><?php _e( 'Country', 'invoicing' ); ?></th>
-				<th scope="col" class="wpinv_tax_state"><?php _e( 'State / Province', 'invoicing' ); ?></th>
-                <th scope="col" class="wpinv_tax_global" title="<?php esc_attr_e( 'Apply rate to whole country, regardless of state / province', 'invoicing' ); ?>"><?php _e( 'Country Wide', 'invoicing' ); ?></th>
-                <th scope="col" class="wpinv_tax_rate"><?php _e( 'Rate %', 'invoicing' ); ?></th> 
-                <th scope="col" class="wpinv_tax_name"><?php _e( 'Tax Name', 'invoicing' ); ?></th>
-				<th scope="col" class="wpinv_tax_action"><?php _e( 'Remove', 'invoicing' ); ?></th>
-			</tr>
-		</thead>
-        <tbody>
-		<?php if( !empty( $rates ) ) : ?>
-			<?php foreach( $rates as $key => $rate ) : ?>
-            <?php 
-            $sanitized_key = wpinv_sanitize_key( $key );
-            ?>
-			<tr>
-				<td class="wpinv_tax_country">
-					<?php
-					echo wpinv_html_select( array(
-						'options'          => wpinv_get_country_list( true ),
-						'name'             => 'tax_rates[' . $sanitized_key . '][country]',
-                        'id'               => 'tax_rates[' . $sanitized_key . '][country]',
-						'selected'         => $rate['country'],
-						'show_option_all'  => false,
-						'show_option_none' => false,
-						'class'            => 'wpinv-tax-country wpi_select2',
-						'placeholder'      => __( 'Choose a country', 'invoicing' )
-					) );
-					?>
-				</td>
-				<td class="wpinv_tax_state">
-					<?php
-					$states = wpinv_get_country_states( $rate['country'] );
-					if( !empty( $states ) ) {
-						echo wpinv_html_select( array(
-							'options'          => array_merge( array( '' => '' ), $states ),
-							'name'             => 'tax_rates[' . $sanitized_key . '][state]',
-                            'id'               => 'tax_rates[' . $sanitized_key . '][state]',
-							'selected'         => $rate['state'],
-							'show_option_all'  => false,
-							'show_option_none' => false,
-                            'class'            => 'wpi_select2',
-							'placeholder'      => __( 'Choose a state', 'invoicing' )
-						) );
-					} else {
-						echo wpinv_html_text( array(
-							'name'  => 'tax_rates[' . $sanitized_key . '][state]', $rate['state'],
-							'value' => ! empty( $rate['state'] ) ? $rate['state'] : '',
-                            'id'    => 'tax_rates[' . $sanitized_key . '][state]',
-						) );
-					}
-					?>
-				</td>
-				<td class="wpinv_tax_global">
-					<input type="checkbox" name="tax_rates[<?php echo $sanitized_key; ?>][global]" id="tax_rates[<?php echo $sanitized_key; ?>][global]" value="1"<?php checked( true, ! empty( $rate['global'] ) ); ?>/>
-					<label for="tax_rates[<?php echo $sanitized_key; ?>][global]"><?php _e( 'Apply to whole country', 'invoicing' ); ?></label>
-				</td>
-				<td class="wpinv_tax_rate"><input type="number" class="small-text" step="any" min="0" max="99" name="tax_rates[<?php echo $sanitized_key; ?>][rate]" value="<?php echo esc_html( $rate['rate'] ); ?>"/></td>
-                <td class="wpinv_tax_name"><input type="text" class="regular-text" name="tax_rates[<?php echo $sanitized_key; ?>][name]" value="<?php echo esc_html( $rate['name'] ); ?>"/></td>
-				<td class="wpinv_tax_action"><span class="wpinv_remove_tax_rate button-secondary"><?php _e( 'Remove Rate', 'invoicing' ); ?></span></td>
-			</tr>
-			<?php endforeach; ?>
-		<?php else : ?>
-			<tr>
-				<td class="wpinv_tax_country">
-					<?php
-					echo wpinv_html_select( array(
-						'options'          => wpinv_get_country_list( true ),
-						'name'             => 'tax_rates[0][country]',
-						'show_option_all'  => false,
-						'show_option_none' => false,
-						'class'            => 'wpinv-tax-country wpi_select2',
-						'placeholder'      => __( 'Choose a country', 'invoicing' )
-					) ); ?>
-				</td>
-				<td class="wpinv_tax_state">
-					<?php echo wpinv_html_text( array(
-						'name' => 'tax_rates[0][state]'
-					) ); ?>
-				</td>
-				<td class="wpinv_tax_global">
-					<input type="checkbox" name="tax_rates[0][global]" id="tax_rates[0][global]" value="1"/>
-					<label for="tax_rates[0][global]"><?php _e( 'Apply to whole country', 'invoicing' ); ?></label>
-				</td>
-				<td class="wpinv_tax_rate"><input type="number" class="small-text" step="any" min="0" max="99" name="tax_rates[0][rate]" placeholder="<?php echo (float)wpinv_get_option( 'tax_rate', 0 ) ;?>" value="<?php echo (float)wpinv_get_option( 'tax_rate', 0 ) ;?>"/></td>
-                <td class="wpinv_tax_name"><input type="text" class="regular-text" name="tax_rates[0][name]" /></td>
-				<td><span class="wpinv_remove_tax_rate button-secondary"><?php _e( 'Remove Rate', 'invoicing' ); ?></span></td>
-			</tr>
-		<?php endif; ?>
-        </tbody>
-        <tfoot><tr><td colspan="5"></td><td class="wpinv_tax_action"><span class="button-secondary" id="wpinv_add_tax_rate"><?php _e( 'Add Tax Rate', 'invoicing' ); ?></span></td></tr></tfoot>
-	</table>
+/**
+ * Displays the tax rates edit table.
+ */
+function wpinv_tax_rates_callback() {
+	
+	?>
+		</td>
+	</tr>
+	<tr class="bsui">
+    	<td colspan="2" class="p-0">
+			<?php include plugin_dir_path( __FILE__ ) . 'views/html-tax-rates-edit.php'; ?>
+
 	<?php
-	echo ob_get_clean();
+
+}
+
+/**
+ * Displays a tax rate' edit row.
+ */
+function wpinv_tax_rate_callback( $tax_rate, $key, $echo = true ) {
+	ob_start();
+
+	$key                      = sanitize_key( $key );
+	$tax_rate['reduced_rate'] = empty( $tax_rate['reduced_rate'] ) ? 0 : $tax_rate['reduced_rate'];
+	include plugin_dir_path( __FILE__ ) . 'views/html-tax-rate-edit.php';
+
+	if ( $echo ) {
+		echo ob_get_clean();
+	} else {
+		return ob_get_clean(); 
+	}
+
 }
 
 function wpinv_tools_callback($args) {
-    global $wpinv_options;
     ob_start(); ?>
     </td><tr>
     <td colspan="2" class="wpinv_tools_tdbox">
@@ -1039,11 +980,12 @@ function wpinv_set_settings_cap() {
 add_filter( 'option_page_capability_wpinv_settings', 'wpinv_set_settings_cap' );
 
 function wpinv_settings_sanitize_input( $value, $key ) {
-    if ( $key == 'tax_rate' || $key == 'eu_fallback_rate' ) {
-        $value = wpinv_sanitize_amount( $value, 4 );
+
+    if ( $key == 'tax_rate' ) {
+        $value = wpinv_sanitize_amount( $value );
         $value = $value >= 100 ? 99 : $value;
     }
-        
+
     return $value;
 }
 add_filter( 'wpinv_settings_sanitize', 'wpinv_settings_sanitize_input', 10, 2 );

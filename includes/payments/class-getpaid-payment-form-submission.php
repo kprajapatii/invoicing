@@ -328,7 +328,7 @@ class GetPaid_Payment_Form_Submission {
 	public function add_item( $item ) {
 
 		// Make sure that it is available for purchase.
-		if ( ! $item->can_purchase() ) {
+		if ( ! $item->can_purchase() || isset( $this->items[ $item->get_id() ] ) ) {
 			return;
 		}
 
@@ -370,7 +370,7 @@ class GetPaid_Payment_Form_Submission {
 
 			unset( $this->items[ $item_id ] );
 		}
-		
+
 	}
 
 	/**
@@ -379,6 +379,11 @@ class GetPaid_Payment_Form_Submission {
 	 * @since 1.0.19
 	 */
 	public function get_subtotal() {
+
+		if ( wpinv_prices_include_tax() ) {
+			return $this->totals['subtotal']['initial'] - $this->totals['taxes']['initial'];
+		}
+
 		return $this->totals['subtotal']['initial'];
 	}
 
@@ -388,6 +393,11 @@ class GetPaid_Payment_Form_Submission {
 	 * @since 1.0.19
 	 */
 	public function get_recurring_subtotal() {
+
+		if ( wpinv_prices_include_tax() ) {
+			return $this->totals['subtotal']['recurring'] - $this->totals['taxes']['recurring'];
+		}
+
 		return $this->totals['subtotal']['recurring'];
 	}
 
@@ -433,6 +443,11 @@ class GetPaid_Payment_Form_Submission {
 			$this->state = $state;
 		}
 
+		// Abort if the country is not taxable.
+		if ( ! wpinv_is_country_taxable( $this->country ) ) {
+			return;
+		}
+
 		$processor = new GetPaid_Payment_Form_Submission_Taxes( $this );
 
 		foreach ( $processor->taxes as $tax ) {
@@ -449,9 +464,16 @@ class GetPaid_Payment_Form_Submission {
 	 * @since 1.0.19
 	 */
 	public function add_tax( $tax ) {
+
+		if ( wpinv_round_tax_per_tax_rate() ) {
+			$tax['initial_tax']   = wpinv_round_amount( $tax['initial_tax'] );
+			$tax['recurring_tax'] = wpinv_round_amount( $tax['recurring_tax'] );
+		}
+
 		$this->taxes[ $tax['name'] ]         = $tax;
 		$this->totals['taxes']['initial']   += wpinv_sanitize_amount( $tax['initial_tax'] );
 		$this->totals['taxes']['recurring'] += wpinv_sanitize_amount( $tax['recurring_tax'] );
+
 	}
 
 	/**

@@ -36,13 +36,6 @@ class WPInv_Plugin {
 	public $form_elements;
 
 	/**
-	 * Tax instance.
-	 *
-	 * @var WPInv_EUVat
-	 */
-	public $tax;
-
-	/**
 	 * @param array An array of payment gateways.
 	 */
 	public $gateways;
@@ -90,12 +83,9 @@ class WPInv_Plugin {
 		// Sessions.
 		$this->set( 'session', new WPInv_Session_Handler() );
 		$GLOBALS['wpi_session'] = $this->get( 'session' ); // Backwards compatibility.
-		$this->tax              = new WPInv_EUVat();
-		$this->tax->init();
-		$GLOBALS['wpinv_euvat'] = $this->tax; // Backwards compatibility.
+		$GLOBALS['wpinv_euvat'] = new WPInv_EUVat(); // Backwards compatibility.
 
 		// Init other objects.
-		$this->set( 'reports', new WPInv_Reports() ); // TODO: Refactor.
 		$this->set( 'session', new WPInv_Session_Handler() );
 		$this->set( 'notes', new WPInv_Notes() );
 		$this->set( 'api', new WPInv_API() );
@@ -225,7 +215,6 @@ class WPInv_Plugin {
 		require_once( WPINV_PLUGIN_DIR . 'includes/class-wpinv-session-handler.php' );
 		require_once( WPINV_PLUGIN_DIR . 'includes/class-wpinv-ajax.php' );
 		require_once( WPINV_PLUGIN_DIR . 'includes/class-wpinv-api.php' );
-		require_once( WPINV_PLUGIN_DIR . 'includes/class-wpinv-reports.php' );
 		require_once( WPINV_PLUGIN_DIR . 'includes/class-wpinv-cache-helper.php' );
 		require_once( WPINV_PLUGIN_DIR . 'includes/class-wpinv-db.php' );
 		require_once( WPINV_PLUGIN_DIR . 'includes/admin/subscriptions.php' );
@@ -242,13 +231,6 @@ class WPInv_Plugin {
 		require_once( WPINV_PLUGIN_DIR . 'widgets/subscriptions.php' );
 		require_once( WPINV_PLUGIN_DIR . 'widgets/buy-item.php' );
 		require_once( WPINV_PLUGIN_DIR . 'widgets/getpaid.php' );
-
-		/**
-		 * Load the tax class.
-		 */
-		if ( ! class_exists( 'WPInv_EUVat' ) ) {
-			require_once( WPINV_PLUGIN_DIR . 'includes/libraries/wpinv-euvat/class-wpinv-euvat.php' );
-		}
 
 		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 			GetPaid_Post_Types_Admin::init();
@@ -308,6 +290,7 @@ class WPInv_Plugin {
 			"$plugin_path/includes/gateways",
 			"$plugin_path/includes/payments",
 			"$plugin_path/includes/geolocation",
+			"$plugin_path/includes/reports",
 			"$plugin_path/includes/api",
 			"$plugin_path/includes/admin",
 			"$plugin_path/includes/admin/meta-boxes",
@@ -421,15 +404,15 @@ class WPInv_Plugin {
 
 		if ( isset( $_REQUEST['getpaid-action'] ) && isset( $_REQUEST['getpaid-nonce'] ) && wp_verify_nonce( $_REQUEST['getpaid-nonce'], 'getpaid-nonce' ) ) {
 
-			$key = sanitize_key( $_REQUEST['getpaid-action'] );
+			$key  = sanitize_key( $_REQUEST['getpaid-action'] );
+			$data = wp_unslash( $_REQUEST );
 			if ( is_user_logged_in() ) {
-				do_action( "getpaid_authenticated_action_$key", $_REQUEST );
+				do_action( "getpaid_authenticated_action_$key", $data );
 			}
 
-			do_action( "getpaid_unauthenticated_action_$key", $_REQUEST );
+			do_action( "getpaid_unauthenticated_action_$key", $data );
 
 		}
-        
 
     }
 

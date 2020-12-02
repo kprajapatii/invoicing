@@ -24,7 +24,7 @@ class GetPaid_Manual_Gateway extends GetPaid_Payment_Gateway {
 	 *
 	 * @var array
 	 */
-    protected $supports = array( 'subscription' );
+    protected $supports = array( 'subscription', 'addons' );
 
     /**
 	 * Payment method order.
@@ -99,6 +99,23 @@ class GetPaid_Manual_Gateway extends GetPaid_Payment_Gateway {
 
         return false;
 
+    }
+
+    /**
+	 * Processes invoice addons.
+	 *
+	 * @param WPInv_Invoice $invoice
+	 * @param GetPaid_Form_Item[] $items
+	 * @return WPInv_Invoice
+	 */
+	public function process_addons( $invoice, $items ) {
+
+        foreach ( $items as $item ) {
+            $invoice->add_item( $item );
+        }
+
+        $invoice->recalculate_total();
+        $invoice->save();
     }
 
 }
