@@ -197,7 +197,7 @@ function wpinv_register_settings_option( $tab, $section, $option ) {
     $section = "wpinv_settings_{$tab}_$section";
 
 	if ( isset( $option['desc'] ) && ! empty( $option['help-tip'] ) ) {
-		$tip   = esc_attr( $option['desc'] );
+		$tip   = wpinv_clean( $option['desc'] );
 		$name .= "<span class='dashicons dashicons-editor-help wpi-help-tip' title='$tip'></span>";
 		unset( $option['desc'] );
 	}
@@ -720,8 +720,8 @@ function wpinv_number_callback( $args ) {
 	$desc = wp_kses_post( $args['desc'] );
 	$desc = empty( $desc ) ? '' : "<p class='description'>$desc</p>";
 	$attr = wpinv_settings_attrs_helper( $args );
-	$max  = absint( $args['max'] );
-	$min  = absint( $args['min'] );
+	$max  = intval( $args['max'] );
+	$min  = intval( $args['min'] );
 	$step = floatval( $args['step'] );
 
 	?>
@@ -793,7 +793,7 @@ function wpinv_select_callback( $args ) {
 		<label style="width: 100%;">
 			<select <?php echo $attr; ?>>
 				<?php foreach ( $args['options'] as $option => $name ) : ?>
-					<option value="<?php echo esc_attr( $option ); ?>" <?php echo selected( is_array( $value ) ? in_array( $option, $value, true ) : $option === $value ); ?>><?php echo wpinv_clean( $name ); ?></option>
+					<option value="<?php echo esc_attr( $option ); ?>" <?php echo selected( is_array( $value ) ? in_array( "$option", $value, true ) : "$option" === $value ); ?>><?php echo wpinv_clean( $name ); ?></option>
 				<?php endforeach;?>
 			</select>
 			<?php echo $desc; ?>

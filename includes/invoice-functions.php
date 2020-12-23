@@ -91,7 +91,7 @@ function getpaid_get_invoice_post_types() {
  * @param string $post_type The post type to check for.
  */
 function getpaid_is_invoice_post_type( $post_type ) {
-    return ! empty( $post_type ) && array_key_exists( $post_type, getpaid_get_invoice_post_types() );
+    return is_scalar( $post_type ) && ! empty( $post_type ) && array_key_exists( $post_type, getpaid_get_invoice_post_types() );
 }
 
 /**
@@ -1246,5 +1246,31 @@ function getpaid_get_invoice_meta( $invoice ) {
     $meta = apply_filters( 'getpaid_invoice_meta_data', $meta, $invoice );
 
     return $meta;
+
+}
+
+/**
+ * Returns an array of valid invoice status classes.
+ *
+ * @return array
+ */
+function getpaid_get_invoice_status_classes() {
+
+	return apply_filters(
+		'getpaid_get_invoice_status_classes',
+		array(
+            'wpi-quote-declined' => 'badge-danger',
+            'wpi-failed'         => 'badge-danger',
+			'wpi-processing'     => 'badge-info',
+			'wpi-onhold'         => 'badge-warning',
+			'wpi-quote-accepted' => 'badge-success',
+			'publish'            => 'badge-success',
+			'wpi-renewal'        => 'badge-primary',
+            'wpi-cancelled'      => 'badge-secondary',
+            'wpi-pending'        => 'badge-dark',
+            'wpi-quote-pending'  => 'badge-dark',
+            'wpi-refunded'       => 'badge-secondary',
+		)
+	);
 
 }
