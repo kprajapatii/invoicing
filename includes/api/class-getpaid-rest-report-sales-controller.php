@@ -214,14 +214,16 @@ class GetPaid_REST_Report_Sales_Controller extends GetPaid_REST_Date_Based_Contr
 		$report_data->decimal_places    = wpinv_decimals();
 		$report_data->thousands_sep     = wpinv_thousands_separator();
 		$report_data->decimals_sep      = wpinv_decimal_separator();
-		$report_data->start_date        = getpaid_format_date( date( 'Y-m-d', strtotime( $this->report_range['after'] ) + DAY_IN_SECONDS ) );
-		$report_data->end_date          = getpaid_format_date( date( 'Y-m-d', strtotime( $this->report_range['before'] ) - DAY_IN_SECONDS ) );
+		$report_data->start_date        = date( 'Y-m-d', strtotime( $this->report_range['after'] ) + DAY_IN_SECONDS );
+		$report_data->end_date          = date( 'Y-m-d', strtotime( $this->report_range['before'] ) - DAY_IN_SECONDS );
+		$report_data->start_date_locale = getpaid_format_date( date( 'Y-m-d', strtotime( $this->report_range['after'] ) + DAY_IN_SECONDS ) );
+		$report_data->end_date_locale   = getpaid_format_date( date( 'Y-m-d', strtotime( $this->report_range['before'] ) - DAY_IN_SECONDS ) );
 		$report_data->decimals_sep      = wpinv_decimal_separator();
 
 		$context = ! empty( $request['context'] ) ? $request['context'] : 'view';
 		$data    = $report_data;
 		unset( $data->invoice_counts, $data->invoices, $data->coupons, $data->refunds, $data->invoice_items );
-		$data    = $this->add_additional_fields_to_object( $data, $request );
+		$data    = $this->add_additional_fields_to_object( (array) $data, $request );
 		$data    = $this->filter_response_by_context( $data, $context );
 
 		// Wrap the data in a response object.
@@ -260,6 +262,7 @@ class GetPaid_REST_Report_Sales_Controller extends GetPaid_REST_Date_Based_Contr
 			'refunded_items' => $this->count_refunded_items(), // invoice_item_count, post_date
 			'invoices'       => $this->query_invoice_totals(), // total_sales, total_tax, total_discount, total_fees, subtotal, post_date
 			'refunds'        => $this->query_refunded_totals(), // total_sales, total_tax, total_discount, total_fees, subtotal, post_date
+			'previous_range' => $this->previous_range,
 		);
 
 		// Calculated totals.
@@ -613,6 +616,15 @@ class GetPaid_REST_Report_Sales_Controller extends GetPaid_REST_Date_Based_Contr
 				'interval' => array(
 					'description' => __( 'Number of months/days in the report period.', 'invoicing' ),
 					'type'        => 'integer',
+					'context'     => array( 'view' ),
+					'readonly'    => true,
+				),
+				'previous_range'  => array(
+					'description' => __( 'The previous report period.', 'invoicing' ),
+					'type'        => 'array',
+					'items'       => array(
+						'type'    => 'string',
+					),
 					'context'     => array( 'view' ),
 					'readonly'    => true,
 				),
