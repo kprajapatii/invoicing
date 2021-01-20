@@ -211,7 +211,7 @@ abstract class GetPaid_Data {
 	 * @return bool result
 	 */
 	public function delete( $force_delete = false ) {
-		if ( $this->data_store && $this->get_id() ) {
+		if ( $this->data_store && $this->exists() ) {
 			$this->data_store->delete( $this, array( 'force_delete' => $force_delete ) );
 			$this->set_id( 0 );
 			return true;
@@ -338,7 +338,7 @@ abstract class GetPaid_Data {
 		}
 
 		/* translators: %s: $key Key to check */
-		getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Generic add/update/get meta methods should not be used for internal meta data, including "%s". Use getters and setters.', 'getpaid' ), $key ), '1.0.19' );
+		getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Generic add/update/get meta methods should not be used for internal meta data, including "%s". Use getters and setters.', 'invoicing' ), $key ), '1.0.19' );
 
 		return true;
 	}
@@ -361,7 +361,7 @@ abstract class GetPaid_Data {
 		if ( method_exists( $this, "set_$key") ) {
 
 			/* translators: %s: $key Key to set */
-			getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Object data such as "%s" should not be accessed directly. Use getters and setters.', 'getpaid' ), $key ), '1.0.19' );
+			getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Object data such as "%s" should not be accessed directly. Use getters and setters.', 'invoicing' ), $key ), '1.0.19' );
 
 			call_user_func( array( $this, "set_$key" ), $value );
 		} else {
@@ -380,7 +380,7 @@ abstract class GetPaid_Data {
 
 			if ( 'post_type' != $key ) {
 				/* translators: %s: $key Key to set */
-				getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Object data such as "%s" should not be accessed directly. Use getters and setters.', 'getpaid' ), $key ), '1.0.19' );
+				getpaid_doing_it_wrong( __FUNCTION__, sprintf( __( 'Object data such as "%s" should not be accessed directly. Use getters and setters.', 'invoicing' ), $key ), '1.0.19' );
 			}
 
             return call_user_func( array( $this, 'get_' . $key ) );

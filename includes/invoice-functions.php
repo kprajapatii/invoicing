@@ -1008,7 +1008,7 @@ function getpaid_new_invoice( $invoice ) {
     $invoice->add_note(
         sprintf(
             __( '%s created with the status "%s".', 'invoicing' ),
-            ucfirst( $invoice->get_type() ),
+            ucfirst( $invoice->get_invoice_quote_type() ),
             wpinv_status_nicename( $invoice->get_status(), $invoice  )
         )
     );
@@ -1117,7 +1117,7 @@ function getpaid_get_invoice_meta( $invoice ) {
         'number' => array(
             'label' => sprintf(
                 __( '%s Number', 'invoicing' ),
-                ucfirst( $invoice->get_type() )
+                ucfirst( $invoice->get_invoice_quote_type() )
             ),
             'value' => sanitize_text_field( $invoice->get_number() ),
         ),
@@ -1125,7 +1125,7 @@ function getpaid_get_invoice_meta( $invoice ) {
         'status' => array(
             'label' => sprintf(
                 __( '%s Status', 'invoicing' ),
-                ucfirst( $invoice->get_type() )
+                ucfirst( $invoice->get_invoice_quote_type() )
             ),
             'value' => $invoice->get_status_label_html(),
         ),
@@ -1133,7 +1133,7 @@ function getpaid_get_invoice_meta( $invoice ) {
         'date' => array(
             'label' => sprintf(
                 __( '%s Date', 'invoicing' ),
-                ucfirst( $invoice->get_type() )
+                ucfirst( $invoice->get_invoice_quote_type() )
             ),
             'value' => getpaid_format_date( $invoice->get_created_date() ),
         ),
@@ -1194,7 +1194,7 @@ function getpaid_get_invoice_meta( $invoice ) {
 
                 'label' => sprintf(
                     __( 'Parent %s', 'invoicing' ),
-                    ucfirst( $invoice->get_type() )
+                    ucfirst( $invoice->get_invoice_quote_type() )
                 ),
 
                 'value' => wpinv_invoice_link( $invoice->get_parent_id() ),
@@ -1225,7 +1225,7 @@ function getpaid_get_invoice_meta( $invoice ) {
                 $meta[ 'recurring_total' ] = array(
 
                     'label' => __( 'Recurring Amount', 'invoicing' ),
-                    'value' => wpinv_price( wpinv_format_amount( $subscription->get_recurring_amount() ), $invoice->get_currency() ),
+                    'value' => wpinv_price( $subscription->get_recurring_amount(), $invoice->get_currency() ),
         
                 );
 
@@ -1238,7 +1238,7 @@ function getpaid_get_invoice_meta( $invoice ) {
     $meta[ 'invoice_total' ] = array(
 
         'label' => __( 'Total Amount', 'invoicing' ),
-        'value' => wpinv_price( wpinv_format_amount( $invoice->get_total() ), $invoice->get_currency() ),
+        'value' => wpinv_price( $invoice->get_total(), $invoice->get_currency() ),
 
     );
 

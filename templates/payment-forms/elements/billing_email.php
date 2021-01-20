@@ -12,14 +12,15 @@ defined( 'ABSPATH' ) || exit;
 $value = '';
 $class = '';
 
-if ( is_user_logged_in() ) {
+if ( ! empty( $form->invoice ) ) {
+    $value   = sanitize_email( $form->invoice->get_email() );
+} else if ( is_user_logged_in() ) {
     $user  = wp_get_current_user();
     $value = sanitize_email( $user->user_email );
+}
 
-    if ( ! empty( $hide_billing_email ) ) {
-        $class = 'd-none';
-    }
-
+if ( ! empty( $value ) && ! empty( $hide_billing_email ) ) {
+    $class = 'd-none';
 }
 
 do_action( 'getpaid_before_payment_form_billing_email', $form );
@@ -37,6 +38,9 @@ echo aui()->input(
         'help_text'  => empty( $description ) ? '' : wp_kses_post( $description ),
         'type'       => 'email',
         'value'      => $value,
+        'extra_attributes' => array(
+            'autocomplete' => 'billing email',
+        ),
     )
 );
 
