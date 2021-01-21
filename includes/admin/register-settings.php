@@ -621,14 +621,14 @@ function getpaid_settings_description_callback( $args ) {
 }
 
 function wpinv_gateways_callback( $args ) {
-	global $wpinv_options;
-    
+
+	$gateways    = wpinv_get_option( 'gateways', array( 'manual' => 1 ) );
     $sanitize_id = wpinv_sanitize_key( $args['id'] );
 
 	foreach ( $args['options'] as $key => $option ) :
 		$sanitize_key = wpinv_sanitize_key( $key );
         
-        if ( isset( $wpinv_options['gateways'][ $key ] ) )
+        if ( is_array( $gateways ) && isset( $gateways[ $key ] ) )
 			$enabled = '1';
 		else
 			$enabled = null;
@@ -968,8 +968,26 @@ function wpinv_tools_callback($args) {
                 <th scope="col" class="wpinv-th-action"><?php _e( 'Action', 'invoicing' ); ?></th>
             </tr>
         </thead>
-            <?php do_action( 'wpinv_tools_row' ); ?>
+
         <tbody>
+			<tr>
+                <td><?php _e( 'Check Pages', 'invoicing' );?></td>
+                <td>
+                    <small><?php _e( 'Creates any missing GetPaid pages.', 'invoicing' ); ?></small>
+                </td>
+                <td>
+					<a href="<?php
+						echo esc_url(
+							wp_nonce_url(
+								add_query_arg( 'getpaid-admin-action', 'create_missing_pages' ),
+								'getpaid-nonce',
+								'getpaid-nonce'
+							)
+						);
+					?>" class="button button-primary"><?php _e('Run', 'geodirectory');?></a>
+                </td>
+            </tr>
+			<?php do_action( 'wpinv_tools_row' ); ?>
         </tbody>
     </table>
     <?php do_action( 'wpinv_tools_after' ); ?>

@@ -64,6 +64,7 @@ class GetPaid_Admin {
 		add_action( 'getpaid_authenticated_admin_action_send_invoice', array( $this, 'send_customer_invoice' ) );
 		add_action( 'getpaid_authenticated_admin_action_send_invoice_reminder', array( $this, 'send_customer_payment_reminder' ) );
         add_action( 'getpaid_authenticated_admin_action_reset_tax_rates', array( $this, 'admin_reset_tax_rates' ) );
+		add_action( 'getpaid_authenticated_admin_action_create_missing_pages', array( $this, 'admin_create_missing_pages' ) );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		do_action( 'getpaid_init_admin_hooks', $this );
 
@@ -338,27 +339,30 @@ class GetPaid_Admin {
 
     }
 
-    /**
-     * Maybe redirect users to our admin settings page.
-     */
-    public function activation_redirect() {
+	/**
+	 * Redirect users to settings on activation.
+	 *
+	 * @return void
+	 */
+	public function activation_redirect() {
 
-		// Bail if no activation redirect.
-		if ( ! get_transient( '_wpinv_activation_redirect' ) || wp_doing_ajax() ) {
+		$redirected = get_option( 'wpinv_redirected_to_settings' );
+
+		if ( ! empty( $redirected ) || wp_doing_ajax() || ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-
-		// Delete the redirect transient.
-		delete_transient( '_wpinv_activation_redirect' );
 
 		// Bail if activating from network, or bulk
 		if ( is_network_admin() || isset( $_GET['activate-multi'] ) ) {
 			return;
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=wpinv-settings&tab=general' ) );
-		exit;
-    }
+	    update_option( 'wpinv_redirected_to_settings', 1 );
+
+        wp_safe_redirect( admin_url( 'admin.php?page=wpinv-settings&tab=general' ) );
+        exit;
+
+	}
 
     /**
      * Fires an admin action after verifying that a user can fire them.
@@ -418,6 +422,18 @@ class GetPaid_Admin {
 		wp_safe_redirect( remove_query_arg( array( 'getpaid-admin-action', 'getpaid-nonce' ) ) );
 		exit;
 
+	}
+
+	/**
+     * Resets admin pages.
+	 * 
+     */
+    public function admin_create_missing_pages() {
+		$installer = new GetPaid_Installer();
+		$installer->create_pages();
+		$this->show_success( __( 'GetPaid pages updated.', 'invoicing' ) );
+		wp_safe_redirect( remove_query_arg( array( 'getpaid-admin-action', 'getpaid-nonce' ) ) );
+		exit;
 	}
 
     /**
@@ -527,6 +543,24 @@ class GetPaid_Admin {
             }
 
         }
+
+		foreach ( array( 'checkout_page', 'invoice_history_page', 'success_page', 'failure_page', 'invoice_subscription_page' ) as $page ) {
+
+			if ( ! is_numeric( wpinv_get_option( $page, false ) ) ) {
+				$url     = esc_url(
+					wp_nonce_url(
+						add_query_arg( 'getpaid-admin-action', 'create_missing_pages' ),
+						'getpaid-nonce',
+						'getpaid-nonce'
+					)
+				);
+				$message  = __( 'Some GetPaid pages are missing. To use GetPaid without any issues, click the button below to generate the missing pages.', 'invoicing' );
+				$message2 = __( 'Generate Pages', 'invoicing' );
+				echo "<div class='notice notice-warning is-dismissible'><p>$message<br><br><a href='$url' class='button button-primary'>$message2</a></p></div>";
+				break;
+			}
+
+		}
 
 	}
 
