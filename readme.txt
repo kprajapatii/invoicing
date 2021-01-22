@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.6
-Stable tag: 2.0.2
+Stable tag: 2.0.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -133,8 +133,17 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 
 == Changelog ==
 
-= 2.0.2 =
+= 2.0.4 =
+* Tool to create missing database tables - ADDED
+* Tool to re-copy missing invoices - ADDED
+* Conflict with youzer plugin - FIXED
+
+= 2.0.3 =
 * Authorize.NET using the last name as the customer's address - FIXED
+* Resend invoice button not working - FIXED
+* Send invoice reminder button not working - FIXED
+* Manual gateway renamed to "Test Gateway" - CHANGED
+* VAT validation not working - FIXED
 
 = 2.0.2 =
 * Default pages not created for new installs - FIXED
