@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.6
-Stable tag: 2.0.6
+Stable tag: 2.0.7
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -132,6 +132,12 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 9. Single invoice view page.
 
 == Changelog ==
+
+= 2.0.7 =
+* Incompatibility issues with UX Builder from Flatsome - FIXED
+* Template overides loaded twice - FIXED
+* Taxes sometimes applied even if disabled - FIXED
+* Wrong trial period shown on the item edit page - FIXED
 
 = 2.0.6 =
 * Tool to create missing database tables - ADDED
