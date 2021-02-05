@@ -231,6 +231,7 @@ class WPInv_Plugin {
 		require_once( WPINV_PLUGIN_DIR . 'widgets/subscriptions.php' );
 		require_once( WPINV_PLUGIN_DIR . 'widgets/buy-item.php' );
 		require_once( WPINV_PLUGIN_DIR . 'widgets/getpaid.php' );
+		require_once( WPINV_PLUGIN_DIR . 'includes/admin/admin-pages.php' );
 
 		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 			GetPaid_Post_Types_Admin::init();
@@ -238,7 +239,6 @@ class WPInv_Plugin {
 			require_once( WPINV_PLUGIN_DIR . 'includes/admin/wpinv-admin-functions.php' );
 			require_once( WPINV_PLUGIN_DIR . 'includes/admin/meta-boxes/class-mb-payment-form.php' );
 			require_once( WPINV_PLUGIN_DIR . 'includes/admin/meta-boxes/class-mb-invoice-notes.php' );
-			require_once( WPINV_PLUGIN_DIR . 'includes/admin/admin-pages.php' );
 			require_once( WPINV_PLUGIN_DIR . 'includes/admin/class-wpinv-admin-menus.php' );
 			require_once( WPINV_PLUGIN_DIR . 'includes/admin/class-wpinv-users.php' );
 			require_once( WPINV_PLUGIN_DIR . 'includes/admin/class-getpaid-admin-profile.php' );
@@ -484,6 +484,7 @@ class WPInv_Plugin {
 			'0.0.5' => '004',
 			'1.0.3' => '102',
 			'2.0.0' => '118',
+			'2.0.8' => '207',
 		);
 
 		foreach ( $upgrades as $key => $method ) {
@@ -492,6 +493,22 @@ class WPInv_Plugin {
 				return $installer->upgrade_db( $method );
 			}
 
+		}
+
+	}
+
+	/**
+	 * Flushes the permalinks if needed.
+	 *
+	 * @since 2.0.8
+	 */
+	public function maybe_flush_permalinks() {
+
+		$flush = get_option( 'wpinv_flush_permalinks', 0 );
+
+		if ( ! empty( $flush ) ) {
+			flush_rewrite_rules();
+			delete_option( 'wpinv_flush_permalinks' );
 		}
 
 	}
