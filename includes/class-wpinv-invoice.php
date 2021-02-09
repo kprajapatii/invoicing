@@ -3461,7 +3461,8 @@ class WPInv_Invoice extends GetPaid_Data {
 	public function recalculate_total_tax() {
 
 		// Maybe disable taxes.
-		if ( ! wpinv_use_taxes() || $this->get_disable_taxes() || ! wpinv_is_country_taxable( $this->get_country() )  ) {
+		$vat_number = $this->get_vat_number();
+		if ( ! wpinv_use_taxes() || $this->get_disable_taxes() || ! wpinv_is_country_taxable( $this->get_country() ) || ( GetPaid_Payment_Form_Submission_Taxes::is_eu_transaction( $this->get_country() ) && ! empty( $vat_number ) &&  'vat_too' != wpinv_get_option( 'vat_same_country_rule' )  )  ) {
 
 			$this->totals['tax'] = array(
 				'initial'   => 0,
@@ -3477,13 +3478,12 @@ class WPInv_Invoice extends GetPaid_Data {
 			foreach ( $this->get_items() as $item ) {
 				$rates    = getpaid_get_item_tax_rates( $item, $this->get_country(), $this->get_state() );
 				$rates    = getpaid_filter_item_tax_rates( $item, $rates );
-				$taxes    = getpaid_calculate_item_taxes( $item->get_sub_total(), $rates );
-				$r_taxes  = getpaid_calculate_item_taxes( $item->get_recurring_sub_total(), $rates );
-
+				$taxes    = getpaid_calculate_item_taxes( getpaid_get_taxable_amount( $item->get_id(), $item->get_sub_total(), $this->get_discount_code(), false ), $rates );
+				$r_taxes  = getpaid_calculate_item_taxes( getpaid_get_taxable_amount( $item->get_id(), $item->get_recurring_sub_total(), $this->get_discount_code(), true ), $rates );
 				foreach ( $taxes as $name => $amount ) {
 					$recurring = isset( $r_taxes[ $name ] ) ? $r_taxes[ $name ] : 0;
 					$tax       = getpaid_prepare_item_tax( $item, $name, $amount, $recurring );
-		
+
 					if ( ! isset( $item_taxes[ $name ] ) ) {
 						$item_taxes[ $name ] = $tax;
 						continue;
