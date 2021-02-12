@@ -159,16 +159,11 @@ jQuery(function ($) {
 	$('#getpaid-invoice-fill-user-details').on('click', function (e) {
 		e.preventDefault()
 
-		var metabox = $(this).closest('.inside');
+		var metabox = $(this).closest('.bsui');
 		var user_id = metabox.find('#post_author_override').val()
 
 		// Ensure that we have a user id and that we are not adding a new user.
 		if (!user_id || $(this).attr('disabled')) {
-			return;
-		}
-
-		// Let the user know that the billing details will be replaced.
-		if (!window.confirm(WPInv_Admin.FillBillingDetails)) {
 			return;
 		}
 
@@ -207,6 +202,10 @@ jQuery(function ($) {
 			})
 
 	})
+
+	$( '#getpaid-invoice-user-id-wrapper #post_author_override' ).on( 'change', function() {
+		$('#getpaid-invoice-fill-user-details').trigger( 'click' )
+	} )
 
 	// When clicking the create a new user button...
 	$('#getpaid-invoice-create-new-user-button').on('click', function (e) {
@@ -259,7 +258,7 @@ jQuery(function ($) {
 			.find('.invalid-feedback')
 			.remove()
 
-		var metabox = $(this).closest('.inside');
+		var metabox = $(this).closest('.bsui');
 		var email = $(this).val()
 
 		// Block the metabox.
@@ -434,7 +433,7 @@ jQuery(function ($) {
 			}
 
 			// Block the metabox.
-			wpinvBlock('#wpinv-items .inside')
+			wpinvBlock('.getpaid-invoice-items-inner')
 
 			// Add the items to the invoice.
 			var data = {
@@ -461,7 +460,7 @@ jQuery(function ($) {
 				})
 
 				.always(function (response) {
-					wpinvUnblock('#wpinv-items .inside');
+					wpinvUnblock('.getpaid-invoice-items-inner');
 				})
 		})
 	}
@@ -478,7 +477,7 @@ jQuery(function ($) {
 		}
 
 		// Block the metabox.
-		wpinvBlock('#wpinv-items .inside')
+		wpinvBlock('.getpaid-invoice-items-inner')
 
 		$.post(WPInv_Admin.ajax_url, data)
 
@@ -491,7 +490,7 @@ jQuery(function ($) {
 			})
 
 			.always(function (response) {
-				wpinvUnblock('#wpinv-items .inside');
+				wpinvUnblock('.getpaid-invoice-items-inner');
 			})
 	}
 
@@ -534,7 +533,7 @@ jQuery(function ($) {
 		e.preventDefault();
 
 		// Block the metabox.
-		wpinvBlock('#wpinv-items .inside')
+		wpinvBlock('.getpaid-invoice-items-inner')
 
 		// Item details.
 		var inputs = $(this).closest('.getpaid-invoice-item').data('inputs')
@@ -570,7 +569,7 @@ jQuery(function ($) {
 			})
 
 			.always(function (response) {
-				wpinvUnblock('#wpinv-items .inside');
+				wpinvUnblock('.getpaid-invoice-items-inner');
 			})
 
 	})
@@ -612,7 +611,7 @@ jQuery(function ($) {
 		$('#getpaid-edit-invoice-item .getpaid-edit-item-div :input').val('')
 
 		// Block the metabox.
-		wpinvBlock('#wpinv-items .inside')
+		wpinvBlock('.getpaid-invoice-items-inner')
 
 		// Save the edit.
 		var post_data = {
@@ -639,7 +638,7 @@ jQuery(function ($) {
 			})
 
 			.always(function (response) {
-				wpinvUnblock('#wpinv-items .inside');
+				wpinvUnblock('.getpaid-invoice-items-inner');
 			})
 	})
 
@@ -658,7 +657,7 @@ jQuery(function ($) {
 		}
 
 		// Block the metabox.
-		wpinvBlock('#wpinv-items .inside')
+		wpinvBlock('.getpaid-invoice-items-inner')
 
 		$.post(WPInv_Admin.ajax_url, data)
 
@@ -680,11 +679,16 @@ jQuery(function ($) {
 			})
 
 			.always(function (response) {
-				wpinvUnblock('#wpinv-items .inside');
+				wpinvUnblock('.getpaid-invoice-items-inner');
 			})
 
 	}
 	$('#wpinv-items .recalculate-totals-button').on('click', function (e) {
+		e.preventDefault()
+		recalculateTotals()
+	})
+
+	$('.getpaid-is-invoice-cpt #wpinv_vat_number, .getpaid-is-invoice-cpt #wpinv_taxable').on('change', function (e) {
 		e.preventDefault()
 		recalculateTotals()
 	})
@@ -731,7 +735,7 @@ jQuery(function ($) {
 			$.post(WPInv_Admin.ajax_url, data, function (response) {
 				$('ul.invoice_notes').append(response);
 				$('ul.invoice_notes')[0].scrollTop = $('ul.invoice_notes')[0].scrollHeight;
-				$('#wpinv-notes').unblock();
+				wpinvUnblock( '#wpinv-notes' );
 				$('#add_invoice_note').val('');
 			});
 			return false;
@@ -1202,31 +1206,32 @@ jQuery(function ($) {
 
 });
 
-/**
- * Blocks an HTML element to prevent interaction.
- *
- * @param {String} el The element to block
- * @param {String} message an optional message to display alongside the spinner
- */
 function wpinvBlock(el, message) {
-	message = typeof message != 'undefined' && message !== '' ? message : '';
-	jQuery(el).block({
-		message: '<span class="bsui"><span class="spinner is-active float-none"></span></span>' + message,
-		overlayCSS: {
-			background: '#fff',
-			opacity: 0.6
-		},
-		css: {
-			border: 'none'
-		}
-	});
+    message = typeof message != 'undefined' && message !== '' ? message : WPInv_Admin.loading;
+    var $el = jQuery( el )
+
+    // Do not block twice.
+    if ( 1 != $el.data( 'GetPaidIsBlocked' ) ) {
+        $el.data( 'GetPaidIsBlocked', 1 )
+        $el.data( 'GetPaidWasRelative', $el.hasClass( 'position-relative' ) )
+        $el.addClass( 'position-relative' )
+        $el.append( '<div class="w-100 h-100 position-absolute bg-light d-flex justify-content-center align-items-center getpaid-block-ui" style="top: 0; left: 0; opacity: 0.7; cursor: progress;"><div class="spinner-border" role="status"><span class="sr-only">' + message +'</span></div></div>' )
+    }
+
 }
 
-/**
- * Un-locks an HTML element to allow interaction.
- *
- * @param {String} el The element to unblock
- */
 function wpinvUnblock(el) {
-	jQuery(el).unblock();
+    var $el = jQuery( el )
+
+    if ( 1 == $el.data( 'GetPaidIsBlocked' ) ) {
+        $el.data( 'GetPaidIsBlocked', 0 )
+
+        if ( ! $el.data( 'GetPaidWasRelative') ) {
+            $el.removeClass( 'position-relative' )
+        }
+
+        $el.children( '.getpaid-block-ui' ).remove()
+
+    }
+
 }

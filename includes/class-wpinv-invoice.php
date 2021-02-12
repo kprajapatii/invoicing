@@ -1699,7 +1699,7 @@ class WPInv_Invoice extends GetPaid_Data {
 
         if ( empty( $subscription_id ) && $this->is_renewal() ) {
             $parent = $this->get_parent();
-            return $parent->get_subscription_id( $context );
+            return $parent->get_remote_subscription_id( $context );
         }
 
         return $subscription_id;
@@ -2691,9 +2691,20 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * Set the invoice source.
 	 *
 	 * @since 1.0.19
-	 * @param  string $value email recipients.
+	 * @param  string $value source.
+	 * @deprecated
 	 */
 	public function created_via( $value ) {
+		$this->set_created_via( sanitize_text_field( $value ) );
+	}
+
+	/**
+	 * Set the invoice source.
+	 *
+	 * @since 1.0.19
+	 * @param  string $value source.
+	 */
+	public function set_created_via( $value ) {
 		$this->set_prop( 'created_via', sanitize_text_field( $value ) );
 	}
 
@@ -3412,6 +3423,11 @@ class WPInv_Invoice extends GetPaid_Data {
 			$recurring += $item->get_recurring_sub_total();
         }
 
+		if ( wpinv_prices_include_tax() ) {
+			$subtotal  = max( 0, $subtotal - $this->totals['tax']['initial'] );
+			$recurring = max( 0, $recurring - $this->totals['tax']['recurring'] );
+		}
+
 		$current = $this->is_renewal() ? $recurring : $subtotal;
 		$this->set_subtotal( $current );
 
@@ -3552,10 +3568,10 @@ class WPInv_Invoice extends GetPaid_Data {
      * @return float The invoice total
 	 */
 	public function recalculate_total() {
-        $this->recalculate_subtotal();
         $this->recalculate_total_fees();
         $this->recalculate_total_discount();
 		$this->recalculate_total_tax();
+		$this->recalculate_subtotal();
 		$this->set_total( $this->get_total_tax() + $this->get_total_fees() + $this->get_subtotal() - $this->get_total_discount() );
 		return $this->get_total();
 	}
