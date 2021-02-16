@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.6
-Stable tag: 2.1.1
+Stable tag: 2.1.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -133,6 +133,9 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 
 == Changelog ==
 
+= 2.1.3 =
+* `wpinv_insert_invoice()` function does not return created invoice on success - FIXED
+
 = 2.1.2 =
 * Customers list does not display all available customers - FIXED
 * Discounts only usable once if a maximum use count is set - FIXED
@@ -140,6 +143,8 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 * City not showing on invoice edit metabox - FIXED
 * Price inclusive of tax does not update the subtotal on the invoice - FIXED
 * Display subscriptions info on the Gateways overview page - CHANGED
+* Card details validated even if 100% discount is used - FIXED
+* Display an invoice's date of payment on the admin list table and invoice edit screen - ADDED
 
 = 2.1.1 = 
 * Fabulous Fluid theme floats payment form paragraphs - FIXED
