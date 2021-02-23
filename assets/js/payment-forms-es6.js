@@ -70,6 +70,9 @@ jQuery(function($) {
         return {
 
             // Cache states to reduce server requests.
+            fetched_initial_state: 0,
+
+            // Cache states to reduce server requests.
             cached_states: {},
 
             // The current form.
@@ -192,12 +195,13 @@ jQuery(function($) {
 
                 // Return a promise.
                 var key = this.current_state_key()
-                return $.post( WPInv.ajax_url, key + '&action=wpinv_payment_form_refresh_prices&_ajax_nonce=' + WPInv.formNonce )
+                return $.post( WPInv.ajax_url, key + '&action=wpinv_payment_form_refresh_prices&_ajax_nonce=' + WPInv.formNonce + '&initial_state=' + this.fetched_initial_state )
 
                 .done( ( res ) => {
 
                     // If successful, cache the prices.
                     if ( res.success ) {
+                        this.fetched_initial_state = 1
                         this.cache_state( key, res.data )
                         return this.switch_state()
                     }
@@ -269,9 +273,15 @@ jQuery(function($) {
                 // Refresh prices.
                 this.form.on( 'change', '.getpaid-refresh-on-change', on_field_change );
                 this.form.on( 'input', '.getpaid-payment-form-element-price_select :input:not(.getpaid-refresh-on-change)', on_field_change );
-                this.form.on( 'input', '.getpaid-item-price-input', on_field_change );
                 this.form.on( 'change', '.getpaid-item-quantity-input', on_field_change );
                 this.form.on( 'change', '[name="getpaid-payment-form-selected-item"]', on_field_change);
+
+                // Refresh when price changes.
+                this.form.on( 'change', '.getpaid-item-price-input', function() {
+                    if ( ! $( this ).hasClass('is-invalid' ) ) {
+                        on_field_change()
+                    }
+                } );
 
                 // Update states when country changes.
                 this.form.on( 'change', '.getpaid-shipping-address-wrapper .wpinv_country', () => {
@@ -516,7 +526,7 @@ jQuery(function($) {
     var setup_form = function( form ) {
 
         // Add the row class to gateway credit cards.
-        form.find('.getpaid-gateway-description-div .form-horizontal .form-group').addClass('row')
+        form.find('.getpaid-gateway-descriptions-div .form-horizontal .form-group').addClass('row')
 
         // Hides items that are not in an array.
         /**
@@ -850,6 +860,27 @@ jQuery(function($) {
                 wpinvUnblock( state.parent() )
             });
 
+        }
+
+    } )
+
+    // Minimum amounts.
+    $( document ).on( 'input', '.getpaid-validate-minimum-amount', function( e ) {
+
+        if ( isNaN( parseFloat(  $( this ).val() ) ) ) {
+            if ( $( this ).data( 'minimum-amount' ) ) {
+                $( this ).val( $( this ).data( 'minimum-amount' ) )
+            } else {
+                $( this ).val( 0 )
+            }
+        } else {
+            $( this ).val( parseFloat(  $( this ).val() ) )
+        }
+
+        if ( $( this ).data( 'minimum-amount' ) && $( this ).val() < $( this ).data( 'minimum-amount' ) ) {
+            $( this ).addClass( 'is-invalid' )
+        } else {
+            $( this ).removeClass( 'is-invalid' )
         }
 
     } )

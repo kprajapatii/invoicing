@@ -16,6 +16,9 @@ if ( empty( $company_name ) ) {
     $company_name = wpinv_get_business_name();
 }
 
+// Prepare the VAT number.
+$vat_number = wpinv_get_option( 'vat_number' );
+
 ?>
     <div class="getpaid-company-address form-group">
 
@@ -31,7 +34,7 @@ if ( empty( $company_name ) ) {
 
                 <div class="name">
                     <a target="_blank" class="text-dark" href="<?php echo esc_url( wpinv_get_business_website() ); ?>">
-                        <?php echo esc_html( wpinv_get_business_name() ); ?>
+                        <?php echo esc_html( $company_name ); ?>
                     </a>
                 </div>
 
@@ -42,6 +45,12 @@ if ( empty( $company_name ) ) {
                 <?php if ( $email_from = wpinv_mail_get_from_address() ) { ?>
                     <div class="email_from">
                         <?php echo wp_sprintf( __( 'Email: %s', 'invoicing' ), $email_from );?>
+                    </div>
+                <?php } ?>
+
+                <?php if ( ! empty( $vat_number ) ) { ?>
+                    <div class="email_from">
+                        <?php echo wp_sprintf( __( 'VAT Number: %s', 'invoicing' ), sanitize_text_field( $vat_number ) );?>
                     </div>
                 <?php } ?>
 

@@ -114,6 +114,98 @@ class WPInv_Customers_Table extends WP_List_Table {
 	}
 
 	/**
+	 * Displays the signup column.
+	 *
+	 * @since 1.0.19
+	 *
+	 * @param WP_User $user
+	 *
+	 * @return string Column Name
+	 */
+	public function column_signup( $user ) {
+		return getpaid_format_date_value( $user->user_registered );
+	}
+
+	/**
+	 * Displays the total spent column.
+	 *
+	 * @since 1.0.19
+	 *
+	 * @param WP_User $user
+	 *
+	 * @return string Column Name
+	 */
+	public function column_total( $user ) {
+
+		$args = array(
+			'data'             => array(
+
+				'total'        => array(
+					'type'     => 'invoice_data',
+					'function' => 'SUM',
+					'name'     => 'total_sales',
+				)
+
+			),
+			'where'            => array(
+
+				'author'       => array(
+					'type'     => 'post_data',
+					'value'    => absint( $user->ID ),
+					'key'      => 'posts.post_author',
+					'operator' => '=',
+				),
+
+			),
+			'query_type'     => 'get_var',
+			'invoice_status' => array( 'wpi-renewal', 'wpi-processing', 'publish' ),
+		);
+
+		return wpinv_price( (float) GetPaid_Reports_Helper::get_invoice_report_data( $args ) );
+
+	}
+
+	/**
+	 * Displays the total spent column.
+	 *
+	 * @since 1.0.19
+	 *
+	 * @param WP_User $user
+	 *
+	 * @return string Column Name
+	 */
+	public function column_invoices( $user ) {
+
+		$args = array(
+			'data'             => array(
+
+				'ID'           => array(
+					'type'     => 'post_data',
+					'function' => 'COUNT',
+					'name'     => 'count',
+					'distinct' => true,
+				),
+
+			),
+			'where'            => array(
+
+				'author'       => array(
+					'type'     => 'post_data',
+					'value'    => absint( $user->ID ),
+					'key'      => 'posts.post_author',
+					'operator' => '=',
+				),
+
+			),
+			'query_type'     => 'get_var',
+			'invoice_status' => array_keys( wpinv_get_invoice_statuses() ),
+		);
+
+		return absint( GetPaid_Reports_Helper::get_invoice_report_data( $args ) );
+
+	}
+
+	/**
 	 * Generates content for a single row of the table
 	 * @since 1.0.19
 	 *
@@ -187,6 +279,9 @@ class WPInv_Customers_Table extends WP_List_Table {
 			'address'  => __( 'Address', 'invoicing' ),
 			'phone'    => __( 'Phone', 'invoicing' ),
 			'company'  => __( 'Company', 'invoicing' ),
+			'invoices' => __( 'Invoices', 'invoicing' ),
+			'total'    => __( 'Total Spend', 'invoicing' ),
+			'signup'   => __( 'Date created', 'invoicing' ),
 		);
 		return apply_filters( 'wpinv_customers_table_columns', $columns );
 
@@ -218,7 +313,7 @@ class WPInv_Customers_Table extends WP_List_Table {
 	public function prepare_query() {
 		global $wpdb;
 
-		$post_types = 'WHERE ';
+		$post_types = '';
 
 		foreach ( array_keys( getpaid_get_invoice_post_types() ) as $post_type ) {
 			$post_types .= $wpdb->prepare( "post_type=%s OR ", $post_type );
@@ -226,17 +321,31 @@ class WPInv_Customers_Table extends WP_List_Table {
 
 		$post_types = rtrim( $post_types, ' OR' );
 
+		// Maybe search.
+		if ( ! empty( $_POST['s'] ) ) {
+			$users = get_users(
+				array(
+					'search'         => sanitize_text_field( urldecode( $_POST['s'] ) ),
+					'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+					'fields'         => 'ID',
+				)
+			);
+
+			$users      = implode( ', ', $users );
+			$post_types = "($post_types) AND ( post_author IN ( $users ) )";
+		}
+
 		// Users with invoices.
     	$customers = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT DISTINCT( post_author ) FROM $wpdb->posts $post_types LIMIT %d,%d",
+				"SELECT DISTINCT( post_author ) FROM $wpdb->posts WHERE $post_types LIMIT %d,%d",
 				$this->get_paged() * 10 - 10,
 				$this->per_page
 			)
 		);
 
 		$this->items = $customers;
-		$this->total = (int) $wpdb->get_var( "SELECT COUNT( DISTINCT( post_author ) ) FROM $wpdb->posts $post_types" );
+		$this->total = (int) $wpdb->get_var( "SELECT COUNT( DISTINCT( post_author ) ) FROM $wpdb->posts WHERE $post_types" );
 
 	}
 

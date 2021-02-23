@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.6
-Stable tag: 2.1.2
+Stable tag: 2.1.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -133,10 +133,22 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 
 == Changelog ==
 
+= 2.1.4 =
+* Validate minimum amounts without sending the value to the servers - CHANGED
+* Missing state defaults to country when editing an invoice - FIXED
+* Change website name on invoice templates to business name - CHANGED
+* Add the sellers vat number at the bottom of the "from" section and remove from the info section - CHANGED
+* Move the buyers vat number from invoice meta to "To" section - CHANGED
+* If VAT is reverse charged, indicate next to the tax field - ADDED
+
 = 2.1.3 =
 * `wpinv_insert_invoice()` function does not return created invoice on success - FIXED
 * UK nolonger treated as an EU state and nolonger applies reverse VAT - CHANGED
 * Ability to for customers to edit their billing addresses - ADDED
+* Show total spent on the customers list table - ADDED
+* Show invoice count on the customers list table - ADDED
+* Show registration date on the customers list table - ADDED
+* Ability to search through customers - ADDED
 
 = 2.1.2 =
 * Customers list does not display all available customers - FIXED
