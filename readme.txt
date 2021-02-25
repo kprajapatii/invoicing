@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.6
-Stable tag: 2.1.3
+Stable tag: 2.1.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -85,7 +85,7 @@ Get timely and friendly support for both Core Plugin and add-ons at our official
 
 = Origin =
 
-Work on GetPaid started in April 2016.
+Work on GetPaid ( AKA, Get Paid or wpGetPaid ) started in April 2016.
 We are proud the original base of the plugin was a fork of [EDD](https://wordpress.org/plugins/easy-digital-downloads/) with permission from Pippin.
 Additionally, we are proud some code from [Sliced Invoices](https://wordpress.org/plugins/sliced-invoices/) by David Grant was used in places, mostly for his beautiful invoice layout.
 We worked on the plugin for over a year before it got its first public release, we stripped down the code to make it a simple lightweight payment and invoicing plugin with many additional features to fit the needs of our customers.
@@ -140,6 +140,9 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 * Add the sellers vat number at the bottom of the "from" section and remove from the info section - CHANGED
 * Move the buyers vat number from invoice meta to "To" section - CHANGED
 * If VAT is reverse charged, indicate next to the tax field - ADDED
+* "Same country rule" defaults to charging tax even if VAT number is validated - CHANGED
+* "Recalculate totals" button on the invoice edit page does not use the updated VAT numbers - FIXED
+* Recurring discount code does not update the recurring text - FIXED
 
 = 2.1.3 =
 * `wpinv_insert_invoice()` function does not return created invoice on success - FIXED
