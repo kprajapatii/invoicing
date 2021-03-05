@@ -3,8 +3,8 @@ Contributors: stiofansisland, paoltaia, ayecode, Ismiaini, picocodes
 Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
-Tested up to: 5.6
-Stable tag: 2.1.4
+Tested up to: 5.7
+Stable tag: 2.1.5
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -136,6 +136,8 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 = 2.1.5 =
 * Show admin notice on our settings page if a GetPaid database table is missing - ADDED
 * Better BuddyPress integration - ADDED
+* Ability to manually delete a subscription - ADDED
+* Do not display VAT number input on the address edit form if taxes are disabled - CHANGED
 
 = 2.1.4 =
 * Validate minimum amounts without sending the value to the servers - CHANGED
