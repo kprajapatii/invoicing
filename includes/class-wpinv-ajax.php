@@ -394,7 +394,7 @@ class WPInv_Ajax {
         }
 
         // Maybe set the country, state, currency.
-        foreach ( array( 'country', 'state', 'currency', 'vat_number' ) as $key ) {
+        foreach ( array( 'country', 'state', 'currency', 'vat_number', 'discount_code' ) as $key ) {
             if ( isset( $_POST[ $key ] ) ) {
                 $method = "set_$key";
                 $invoice->$method( sanitize_text_field( $_POST[ $key ] ) );
@@ -403,6 +403,16 @@ class WPInv_Ajax {
 
         // Maybe disable taxes.
         $invoice->set_disable_taxes( ! empty( $_POST['taxes'] ) );
+
+        // Discount code.
+        if ( ! $invoice->is_paid() && ! $invoice->is_refunded() ) {
+            $discount = new WPInv_Discount( $invoice->get_discount_code() );
+            if ( $discount->exists() ) {
+                $invoice->add_discount( getpaid_calculate_invoice_discount( $invoice, $discount ) );
+            } else {
+                $invoice->remove_discount( 'discount_code' );
+            }
+        }
 
         // Recalculate totals.
         $invoice->recalculate_total();
@@ -487,7 +497,7 @@ class WPInv_Ajax {
         }
 
         // Format the data.
-        $data = wp_list_pluck( $_POST['data'], 'value', 'field' );
+        $data = wp_unslash( wp_list_pluck( $_POST['data'], 'value', 'field' ) );
 
         // Ensure that we have an item id.
         if ( empty( $data['id'] ) ) {
@@ -502,10 +512,10 @@ class WPInv_Ajax {
         }
 
         // Update the item.
-        $item->set_price( $data['price'] );
-        $item->set_name( $data['name'] );
-        $item->set_description( $data['description'] );
-        $item->set_quantity( $data['quantity'] );
+        $item->set_price( floatval( $data['price'] ) );
+        $item->set_name( sanitize_text_field( $data['name'] ) );
+        $item->set_description( wp_kses_post( $data['description'] ) );
+        $item->set_quantity( intval( $data['quantity'] ) );
 
         // Add it to the invoice.
         $error = $invoice->add_item( $item );
