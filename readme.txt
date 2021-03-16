@@ -133,6 +133,15 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 
 == Changelog ==
 
+= 2.1.7 =
+* Lots of customers causes the invoices screen to hang - FIXED
+* New invoice emails not sent for invoices created via admin - FIXED
+* Philippines misspelled - UPDATED
+* Invoice items ordered by ID instead of order added - CHANGED
+* Summer Pro theme sets checkboxes/radio buttons to 100% width - FIXED
+* Changing country recalculates the invoice totals - CHANGED
+* Cancel subscription when all PayPal renewal retries fail - ADDED
+
 = 2.1.6 =
 * Subscription emails not editable - FIXED
 * Pre-GetPaid invoices containing discounts do not apply the discount on renewals - FIXED

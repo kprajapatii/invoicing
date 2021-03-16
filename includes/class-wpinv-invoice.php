@@ -1576,7 +1576,7 @@ class WPInv_Invoice extends GetPaid_Data {
 	public function get_items( $context = 'view' ) {
         return $this->get_prop( 'items', $context );
 	}
-	
+
 	/**
 	 * Get the invoice item ids.
 	 *
@@ -2875,6 +2875,7 @@ class WPInv_Invoice extends GetPaid_Data {
 
         // Remove existing items.
         $this->set_prop( 'items', array() );
+		$this->recurring_item = null;
 
         // Ensure that we have an array.
         if ( ! is_array( $value ) ) {
@@ -3202,7 +3203,7 @@ class WPInv_Invoice extends GetPaid_Data {
 		if ( $item->is_recurring() ) {
 
 			// An invoice can only contain one recurring item.
-			if ( ! empty( $this->recurring_item  && $this->recurring_item != (int) $item->get_id() ) ) {
+			if ( ! empty( $this->recurring_item )  && $this->recurring_item != (int) $item->get_id() ) {
 				return new WP_Error( 'recurring_item', __( 'An invoice can only contain one recurring item', 'invoicing' ) );
 			}
 
@@ -3212,11 +3213,17 @@ class WPInv_Invoice extends GetPaid_Data {
         // Invoice id.
         $item->invoice_id = (int) $this->get_id();
 
-        // Retrieve all items.
-        $items = $this->get_items();
-        $items[ (int) $item->get_id() ] = $item;
+		// Remove duplicates.
+		$this->remove_item( $item->get_id() );
+
+		// Retrieve all items.
+        $items   = $this->get_items();
+
+		// Add new item.
+        $items[] = $item;
 
         $this->set_prop( 'items', $items );
+
 		return true;
 	}
 
@@ -3256,11 +3263,17 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * Retrieves a specific item.
 	 *
 	 * @since 1.0.19
+	 * @return GetPaid_Form_Item|null
 	 */
 	public function get_item( $item_id ) {
-		$items   = $this->get_items();
-		$item_id = (int) $item_id;
-		return ( ! empty( $item_id ) && isset( $items[ $item_id ] ) ) ? $items[ $item_id ] : null;
+
+		foreach ( $this->get_items() as $item ) {
+			if ( (int) $item_id == $item->get_id() ) {
+				return $item;
+			}
+		}
+
+		return null;
     }
 
     /**
@@ -3272,14 +3285,18 @@ class WPInv_Invoice extends GetPaid_Data {
 		$items   = $this->get_items();
 		$item_id = (int) $item_id;
 
-        if ( $item_id == $this->recurring_item ) {
-            $this->recurring_item = null;
-        }
+		foreach ( $items as $index => $item ) {
+			if ( (int) $item_id == $item->get_id() ) {
+				unset( $items[ $index ] );
+				$this->set_prop( 'items', $items );
 
-        if ( isset( $items[ $item_id ] ) ) {
-            unset( $items[ $item_id ] );
-            $this->set_prop( 'items', $items );
-        }
+				if ( $item_id == $this->recurring_item ) {
+					$this->recurring_item = null;
+				}
+
+			}
+		}
+
     }
 
     /**
@@ -3480,7 +3497,7 @@ class WPInv_Invoice extends GetPaid_Data {
 		$vat_number = $this->get_vat_number();
 		$skip_tax   = GetPaid_Payment_Form_Submission_Taxes::is_eu_transaction( $this->get_country() ) && ! empty( $vat_number );
 
-		if ( wpinv_default_billing_country() == $this->get_country() && 'vat_too' == wpinv_get_option( 'vat_same_country_rule', 'vat_too' ) ) {
+		if ( wpinv_is_base_country( $this->get_country() ) && 'vat_too' == wpinv_get_option( 'vat_same_country_rule', 'vat_too' ) ) {
 			$skip_tax = false;
 		}
 
@@ -3732,7 +3749,7 @@ class WPInv_Invoice extends GetPaid_Data {
 	 * @deprecated
 	 */
 	public function refresh_item_ids() {
-        $item_ids = implode( ',', array_unique( array_keys( $this->get_items() ) ) );
+        $item_ids = implode( ',', array_unique( wp_list_pluck( $this->get_cart_details(), 'item_id' ) ) );
         update_post_meta( $this->get_id(), '_wpinv_item_ids', $item_ids );
 	}
 
