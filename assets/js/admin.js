@@ -50,6 +50,11 @@ getpaid.init_select2_item_search = function (select, parent) {
 			}
 
 			return jQuery('<span>' + item.text + '</span>')
+		},
+		language: {
+			inputTooShort: function() {
+				return WPInv_Admin.search_items;
+			}
 		}
 	});
 
@@ -105,6 +110,11 @@ getpaid.init_select2_customer_search = function (select, parent) {
 			}
 
 			return jQuery('<span>' + item.text + '</span>')
+		},
+		language: {
+			inputTooShort: function() {
+				return WPInv_Admin.search_customers;
+			}
 		}
 	});
 
@@ -265,8 +275,12 @@ jQuery(function ($) {
 	})
 
 	$( '#wpinv_post_author_override' ).on( 'change', function() {
+		$( '.getpaid-is-invoice-cpt #post_author_override' ).val( $( '#wpinv_post_author_override' ).val() )
 		$('#getpaid-invoice-fill-user-details').trigger( 'click' )
 	} )
+
+	$( '.getpaid-is-invoice-cpt #post_author_override' ).replaceWith( '<input name="post_author_override" id="post_author_override">' )
+	$( '.getpaid-is-invoice-cpt #post_author_override' ).val( $( '#wpinv_post_author_override' ).val() )
 
 	// When clicking the create a new user button...
 	$('#getpaid-invoice-create-new-user-button').on('click', function (e) {

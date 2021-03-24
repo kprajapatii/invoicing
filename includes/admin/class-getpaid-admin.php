@@ -174,6 +174,8 @@ class GetPaid_Admin {
             'discount_description'      => __( 'Discount Description', 'invoicing' ),
 			'searching'                 => __( 'Searching', 'invoicing' ),
 			'loading'                   => __( 'Loading...', 'invoicing' ),
+			'search_customers'          => __( 'Enter customer name or email', 'invoicing' ),
+			'search_items'              => __( 'Enter item name', 'invoicing' ),
         );
 
 		if ( ! empty( $post ) && getpaid_is_invoice_post_type( $post->post_type ) ) {
@@ -384,12 +386,12 @@ class GetPaid_Admin {
 	 * @param array $args
      */
     public function send_customer_invoice( $args ) {
-		$sent = getpaid()->get( 'invoice_emails' )->user_invoice( new WPInv_Invoice( $args['invoice_id'] ) );
+		$sent = getpaid()->get( 'invoice_emails' )->user_invoice( new WPInv_Invoice( $args['invoice_id'] ), true );
 
 		if ( $sent ) {
 			$this->show_success( __( 'Invoice was successfully sent to the customer', 'invoicing' ) );
 		} else {
-			$this->show_error( __( 'Could not sent the invoice to the customer', 'invoicing' ) );
+			$this->show_error( __( 'Could not send the invoice to the customer', 'invoicing' ) );
 		}
 
 		wp_safe_redirect( remove_query_arg( array( 'getpaid-admin-action', 'getpaid-nonce', 'invoice_id' ) ) );
