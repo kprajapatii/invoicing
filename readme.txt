@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.7
-Stable tag: 2.1.8
+Stable tag: 2.1.9
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -139,6 +139,7 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 * Existing invoices with wrong VAT numbers not payable unless a valid VAT number is provided - FIXED
 * Use a datepicker to set the due date - CHANGED
 * PayPal sometimes shows incorrect totals - FIXED
+* Invoices with discount codes do not automatically add the discount code to the payment form - FIXED
 
 = 2.1.8 =
 * Sometimes invoice user not changeable for manual invoices - FIXED
