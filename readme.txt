@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.7
-Stable tag: 2.2.0
+Stable tag: 2.2.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -138,6 +138,9 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 * Link to remote subscription from the subscriptions page - ADDED
 * Ability to manually update a subscription's profile id - ADDED
 * Site admins can now view other user's suscriptions on the frontend - ADDED
+* Show subscription bill times on invoices and subscriptions - ADDED
+* Trigger js event when form state changes - ADDED
+* Reload page until payment is processed - ADDED
 
 = 2.2.0 =
 * Ability to set logo width and height - ADDED
