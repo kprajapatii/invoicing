@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.7
-Stable tag: 2.2.1
+Stable tag: 2.2.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -132,6 +132,12 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 9. Single invoice view page.
 
 == Changelog ==
+
+= 2.2.2 =
+* Ability to manually set an invoice's payment date - ADDED
+* Do not update customer names when their billing details change - CHANGED
+* Support for non-query string webhook URLs - Authorize.NET no longer accepts query strings in webhook URLs - ADDED
+* Display discount code errors below the discount field - ADDED
 
 = 2.2.1 =
 * Add note for successful notification emails - ADDED
