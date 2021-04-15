@@ -4,6 +4,8 @@
  *
  */
 
+use Automattic\Jetpack\ConnectionUI\Admin;
+
 defined( 'ABSPATH' ) || exit;
 
 ?>
@@ -40,19 +42,11 @@ defined( 'ABSPATH' ) || exit;
                     <td class="getpaid-payment-method-enabled text-center">
                         <?php
 
-                            $id = esc_attr( $id );
-                            echo aui()->input(
-                                array(
-                                    'type'    => 'checkbox',
-                                    'name'    => "wpinv_settings[gateways][$id]",
-                                    'id'      => "wpinv-settings-gateways-$id",
-                                    'value'   => 1,
-                                    'switch'  => true,
-                                    'label'   => '&nbsp;',
-                                    'checked' => wpinv_is_gateway_active( $id ),
-                                    'no_wrap' => true,
-                                )
-                            );
+                            if ( wpinv_is_gateway_active( $id ) ) {
+                                echo "<i class='text-success fa fa-check'></i>";
+                            } else {
+                                echo "<i class='text-dark fa fa-times'></i>";
+                            }
 
                         ?>
                     </td>
@@ -82,7 +76,7 @@ defined( 'ABSPATH' ) || exit;
         <tfoot>
             <tr class="table-light">
                 <td colspan="4" class="border-top">
-                    <a class="button button-secondary getpaid-install-gateways" href="https://wpgetpaid.com/downloads/category/gateways/">
+                    <a class="button button-secondary getpaid-install-gateways" href="<?php echo esc_url( admin_url( 'admin.php?page=wpi-addons&tab=gateways' ) ); ?>">
                         <span><?php _e( 'Add Payment Methods', 'invoicing' ); ?></span>
                     </a>
                 </td>

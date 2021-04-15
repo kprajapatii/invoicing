@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.7
-Stable tag: 2.2.2
+Stable tag: 2.2.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -48,7 +48,7 @@ GetPaid can be used as a payment system with a checkout page by any plugin.
 * Authorize.Net (built-in) - Accept credit card payments (single or recurring) via Authorize.Net.
 * Worldpay (built-in) - Accept credit card payments via Worldpay.
 * Pre Bank Transfer (built-in) - Instruct users how to send you a bank transfer which you can then later mark as paid.
-* [Stripe](https://wpgetpaid.com/downloads/stripe-payment-gateway/) - Accept credit card payments (single or recurring) directly on your website via Stripe.
+* [Stripe](https://wordpress.org/plugins/getpaid-stripe-payments/) - Accept credit card payments (single or recurring) directly on your website via Stripe.
 * [PayPal Pro](https://wpgetpaid.com/downloads/paypal-pro-payment-gateway/) - Accept Paypal and credit card payments (single or recurring) directly on your website.
 * [PayFast](https://wpgetpaid.com/downloads/payfast-payment-gateway/) - Accept payments via PayFast.
 * [Cheque Payment](https://wpgetpaid.com/downloads/cheque-payment-gateway/)  - Accept payments via Cheques
@@ -132,6 +132,16 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 9. Single invoice view page.
 
 == Changelog ==
+
+= 2.2.4 =
+* Authorize.NET improvements - ADDED
+* Payment gateways can now only be activated in their respective settings sections - CHANGED
+* Add discount field to default (and new payment) forms by default - CHANGED
+* Hide discount field if there is no published discount code - CHANGED
+* Customers in Canada, Vietnam, Australia, Singapore, Nigeria, Brazil, South Korea, and India are no longer no longer required to provide a VAT number if "Require VAT number" is enabled - CHANGED
+
+= 2.2.3 =
+* Invoice paid hooks not fired - FIXED
 
 = 2.2.2 =
 * Ability to manually set an invoice's payment date - ADDED
