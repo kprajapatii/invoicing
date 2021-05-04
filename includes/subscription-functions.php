@@ -7,6 +7,66 @@
  */
 
 /**
+ * Retrieves an invoice's subscriptions.
+ *
+ * @param       WPInv_Invoice $invoice
+ * @return      WPInv_Subscription[]|WPInv_Subscription|false
+ * @since       2.3.0
+ */
+function getpaid_get_invoice_subscriptions( $invoice ) {
+
+    // Retrieve subscription groups.
+    $subscription_ids = wp_list_pluck( getpaid_get_invoice_subscription_groups( $invoice->get_id() ), 'subscription_id' );
+
+    // No subscription groups, normal subscription.
+    if ( empty( $subscription_ids ) ) {
+        return getpaid_subscriptions()->get_invoice_subscription( $invoice );
+    }
+
+    // Subscription groups.
+    return array_filter( array_map( 'getpaid_get_subscription', $subscription_ids ) );
+
+}
+
+/**
+ * Retrieves an invoice's subscription groups.
+ *
+ * @param       int $invoice_id
+ * @return      array
+ * @since       2.3.0
+ */
+function getpaid_get_invoice_subscription_groups( $invoice_id ) {
+    $subscription_groups = get_post_meta( $invoice_id, 'getpaid_subscription_groups', true );
+    return empty( $subscription_groups ) ? array() : $subscription_groups;
+}
+
+/**
+ * Retrieves an invoice's subscription's subscription groups.
+ *
+ * @param       int $invoice_id
+ * @param       int $subscription_id
+ * @return      array|false
+ * @since       2.3.0
+ */
+function getpaid_get_invoice_subscription_group( $invoice_id, $subscription_id ) {
+    $subscription_groups = getpaid_get_invoice_subscription_groups( $invoice_id );
+	$matching_group      = wp_list_filter( $subscription_groups, compact( 'subscription_id' ) );
+    return reset( $matching_group );
+}
+
+/**
+ * Retrieves a subscription given an id.
+ *
+ * @param int|string|object|WPInv_Subscription $subscription Subscription object, id, profile_id, or object to read.
+ * @since       2.3.0
+ * @return WPInv_Subscription|false
+ */
+function getpaid_get_subscription( $subscription ) {
+	$subscription = new WPInv_Subscription( $subscription );
+	return $subscription->exists() ? $subscription : false;
+}
+
+/**
  * Queries the subscriptions database.
  *
  * @param array $args Query arguments.For a list of all supported args, refer to GetPaid_Subscriptions_Query::prepare_query()
@@ -375,9 +435,10 @@ function getpaid_subscriptions() {
 /**
  * Fetchs an invoice subscription from the database.
  *
+ * @since 2.3.0
  * @return WPInv_Subscription|bool
  */
-function wpinv_get_subscription( $invoice ) {
+function wpinv_get_invoice_subscription( $invoice ) {
 
     // Retrieve the invoice.
     $invoice = new WPInv_Invoice( $invoice );
@@ -387,7 +448,7 @@ function wpinv_get_subscription( $invoice ) {
         return false;
     }
 
-	// Fetch the invoiec subscription.
+	// Fetch the invoice subscription.
 	$subscription = getpaid_get_subscriptions(
 		array(
 			'invoice_in' => $invoice->is_renewal() ? $invoice->get_parent_id() : $invoice->get_id(),
@@ -507,15 +568,19 @@ function getpaid_calculate_subscription_totals( $invoice ) {
 
 		}
 
-		// Get the totals of the group.
+		/**
+		 * Get the totals of the group.
+		 * @var GetPaid_Form_Item $item
+		 */
 		foreach ( $items as $item ) {
 
-			$subscription_totals[ $subscription_key ]['items'][]          = $item->get_id();
-			$subscription_totals[ $subscription_key ]['item_id']          = $item->get_id();
-			$subscription_totals[ $subscription_key ]['period']           = $item->get_recurring_period( true );
-			$subscription_totals[ $subscription_key ]['interval']         = $item->get_recurring_interval();
-			$subscription_totals[ $subscription_key ]['initial_total']   += $item->get_sub_total();
-			$subscription_totals[ $subscription_key ]['recurring_total'] += $item->get_recurring_sub_total();
+			$subscription_totals[ $subscription_key ]['items'][$item->get_id()]  = $item->prepare_data_for_saving();
+			$subscription_totals[ $subscription_key ]['item_id']                 = $item->get_id();
+			$subscription_totals[ $subscription_key ]['period']                  = $item->get_recurring_period( true );
+			$subscription_totals[ $subscription_key ]['interval']                = $item->get_recurring_interval();
+			$subscription_totals[ $subscription_key ]['initial_total']          += $item->get_sub_total();
+			$subscription_totals[ $subscription_key ]['recurring_total']        += $item->get_recurring_sub_total();
+			$subscription_totals[ $subscription_key ]['recurring_limit']         = $item->get_recurring_limit();
 
 			// Calculate the next renewal date.
 			$period       = $item->get_recurring_period( true );
@@ -535,4 +600,25 @@ function getpaid_calculate_subscription_totals( $invoice ) {
 	}
 
 	return apply_filters( 'getpaid_calculate_subscription_totals', $subscription_totals, $invoice );
+}
+
+/**
+ * Checks if we should group a subscription.
+ *
+ * @param WPInv_Invoice|GetPaid_Payment_Form_Submission|GetPaid_Payment_Form $invoice
+ * @return array
+ */
+function getpaid_should_group_subscriptions( $invoice ) {
+
+	$recurring_items = 0;
+
+	foreach ( $invoice->get_items() as $item ) {
+
+		if ( $item->is_recurring() ) {
+			$recurring_items ++;
+		}
+
+	}
+
+	return apply_filters( 'getpaid_should_group_subscriptions', $recurring_items > 1, $invoice );
 }
