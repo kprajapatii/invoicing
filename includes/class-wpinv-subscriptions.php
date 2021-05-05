@@ -36,7 +36,7 @@ class WPInv_Subscriptions {
         add_action( 'getpaid_authenticated_admin_action_update_single_subscription', array( $this, 'admin_update_single_subscription' ) );
         add_action( 'getpaid_authenticated_admin_action_subscription_manual_renew', array( $this, 'admin_renew_single_subscription' ) );
         add_action( 'getpaid_authenticated_admin_action_subscription_manual_delete', array( $this, 'admin_delete_single_subscription' ) );
-    
+
         // Filter invoice item row actions.
         add_action( 'getpaid-invoice-page-line-item-actions', array( $this, 'filter_invoice_line_item_actions' ), 10, 3 );
     }
@@ -64,7 +64,7 @@ class WPInv_Subscriptions {
 
     /**
      * Deactivates the invoice subscription(s) whenever an invoice status changes.
-     * 
+     *
      * @param WPInv_Invoice $invoice
      */
     public function maybe_deactivate_invoice_subscription( $invoice ) {
@@ -90,7 +90,7 @@ class WPInv_Subscriptions {
 
     /**
 	 * Processes subscription status changes.
-     * 
+     *
      * @param WPInv_Subscription $subscription
      * @param string $from
      * @param string $to
@@ -188,7 +188,7 @@ class WPInv_Subscriptions {
                     $invoice->save();
                     $getpaid_subscriptions_skip_invoice_update = false;
                 }
-    
+
                 $is_first                          = false;
             }
 
@@ -216,22 +216,28 @@ class WPInv_Subscriptions {
      */
     public function create_invoice_subscription_group( $totals, $invoice, $subscription_id = 0, $is_first = false ) {
 
-        $subscription = new WPInv_Subscription( (int) $subscription_id );
-        $initial_amt  = $totals['initial_total'];
+        $subscription  = new WPInv_Subscription( (int) $subscription_id );
+        $initial_amt   = $totals['initial_total'];
+        $recurring_amt = $totals['recurring_total'];
+        $fees          = array();
 
-        // Maybe add non-recurring items.
+        // Maybe add recurring fees.
         if ( $is_first ) {
-            foreach ( $invoice->get_items() as $item ) {
-                if ( ! $item->is_recurring() ) {
-                    $initial_amt += $item->get_sub_total();
+
+            foreach ( $invoice->get_fees() as $i => $fee ) {
+                if ( ! empty( $fee['recurring_fee'] ) ) {
+                    $initial_amt   += wpinv_sanitize_amount( $fee['initial_fee'] );
+                    $recurring_amt += wpinv_sanitize_amount( $fee['recurring_fee'] );
+                    $fees[$i]       = $fee;
                 }
             }
+
         }
 
         $subscription->set_customer_id( $invoice->get_customer_id() );
         $subscription->set_parent_invoice_id( $invoice->get_id() );
         $subscription->set_initial_amount( $initial_amt );
-        $subscription->set_recurring_amount( $totals['recurring_total'] );
+        $subscription->set_recurring_amount( $recurring_amt );
         $subscription->set_date_created( current_time( 'mysql' ) );
         $subscription->set_status( $invoice->is_paid() ? 'active' : 'pending' );
         $subscription->set_product_id( $totals['item_id'] );
@@ -246,7 +252,7 @@ class WPInv_Subscriptions {
             $subscription->set_status( 'trialling' );
 
         // If initial amount is free, treat it as a free trial even if the subscription item does not have a free trial.
-        } else if ( empty( $totals['initial_total'] ) ) {
+        } else if ( empty( $initial_amt ) ) {
             $subscription->set_trial_period( $totals['interval'] . ' ' . $totals['period'] );
             $subscription->set_status( 'trialling' );
         }
@@ -254,6 +260,7 @@ class WPInv_Subscriptions {
         $subscription->save();
 
         $totals['subscription_id'] = $subscription->get_id();
+        $totals['fees']            = $fees;
 
         return $totals;
     }
@@ -495,7 +502,7 @@ class WPInv_Subscriptions {
             } else {
                 $subscription->renew();
                 getpaid_admin()->show_info( __( 'This subscription has been renewed and extended.', 'invoicing' ) );
-            } 
+            }
 
             wp_safe_redirect(
                 add_query_arg(
@@ -532,7 +539,7 @@ class WPInv_Subscriptions {
         } else {
             getpaid_admin()->show_error( __( 'We are unable to delete this subscription. Please try again.', 'invoicing' ) );
         }
-    
+
         $redirected = wp_safe_redirect(
             add_query_arg(
                 array(
@@ -557,6 +564,12 @@ class WPInv_Subscriptions {
      * @param WPInv_Invoice $invoice
      */
     public function filter_invoice_line_item_actions( $actions, $item, $invoice ) {
+
+        // Abort if this invoice uses subscription groups.
+        $subscriptions = getpaid_get_invoice_subscriptions( $invoice );
+        if ( ! $invoice->is_recurring() || ! is_object( $subscriptions ) ) {
+            return $actions;
+        }
 
         // Fetch item subscription.
         $args  = array(
