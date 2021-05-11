@@ -48,7 +48,16 @@ if ( $invoice->is_paid() ) {
 
 } else if ( $invoice->needs_payment() ) {
 
-    if ( $invoice->is_due() ) {
+    if ( ! empty( $_GET['token'] ) ) {
+
+        $alert = aui()->alert(
+            array(
+                'type'    => 'info',
+                'content' => __( "Sometimes it takes a few minutes for us to verify your payment. We'll notify you as soon as we've verified the payment.", 'invoicing' ),
+            )
+        );
+
+    } else if ( $invoice->is_due() ) {
 
         $alert = aui()->alert(
             array(

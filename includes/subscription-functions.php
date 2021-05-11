@@ -62,7 +62,11 @@ function getpaid_get_invoice_subscription_group( $invoice_id, $subscription_id )
  * @return WPInv_Subscription|false
  */
 function getpaid_get_subscription( $subscription ) {
-	$subscription = new WPInv_Subscription( $subscription );
+
+	if ( ! is_a( $subscription, 'WPInv_Subscription' ) ) {
+		$subscription = new WPInv_Subscription( $subscription );
+	}
+
 	return $subscription->exists() ? $subscription : false;
 }
 
@@ -405,7 +409,7 @@ function getpaid_get_formatted_subscription_amount( $subscription ) {
  * Returns an invoice subscription.
  *
  * @param WPInv_Invoice $invoice
- * @return WPInv_Subscription|bool
+ * @return WPInv_Subscription|false
  */
 function getpaid_get_invoice_subscription( $invoice ) {
 	return getpaid_subscriptions()->get_invoice_subscription( $invoice );
@@ -621,4 +625,50 @@ function getpaid_should_group_subscriptions( $invoice ) {
 	}
 
 	return apply_filters( 'getpaid_should_group_subscriptions', $recurring_items > 1, $invoice );
+}
+
+/**
+ * Counts the invoices belonging to a subscription.
+ *
+ * @param int $parent_invoice_id
+ * @param int|false $subscription_id
+ * @return int
+ */
+function getpaid_count_subscription_invoices( $parent_invoice_id, $subscription_id = false ) {
+	global $wpdb;
+
+	$parent_invoice_id = (int) $parent_invoice_id;
+
+	if ( false === $subscription_id || ! (bool) get_post_meta( $parent_invoice_id, '_wpinv_subscription_id', true ) ) {
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(ID) FROM $wpdb->posts WHERE ( post_parent=%d OR ID=%d ) AND post_status IN ( 'publish', 'wpi-processing', 'wpi-renewal' )",
+				$parent_invoice_id,
+				$parent_invoice_id
+			)
+		);
+
+	}
+	
+	$invoice_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT ID FROM $wpdb->posts WHERE ( post_parent=%d OR ID=%d ) AND post_status IN ( 'publish', 'wpi-processing', 'wpi-renewal' )",
+			$parent_invoice_id,
+			$parent_invoice_id
+		)
+	);
+
+	$count = 0;
+
+	foreach ( wp_parse_id_list( $invoice_ids ) as $invoice_id ) {
+
+		if ( $invoice_id == $parent_invoice_id || $subscription_id == (int) get_post_meta( $invoice_id, '_wpinv_subscription_id', true ) ) {
+			$count ++;
+			continue;
+		}
+
+	}
+
+	return $count;
 }

@@ -895,8 +895,10 @@ function getpaid_display_invoice_subscriptions( $invoice ) {
         getpaid_admin_subscription_related_subscriptions_metabox( $main_subscription, false );
     }
 
-    printf( '<h2 class="mt-5 mb-1 h4">%s</h2>', esc_html__( 'Related Invoices', 'invoicing' ) );
-    getpaid_admin_subscription_invoice_details_metabox( $main_subscription, false );
+    if ( $main_subscription->get_total_payments() > 1 ) {
+        printf( '<h2 class="mt-5 mb-1 h4">%s</h2>', esc_html__( 'Related Invoices', 'invoicing' ) );
+        getpaid_admin_subscription_invoice_details_metabox( $main_subscription, false );
+    }
 
 }
 add_action( 'getpaid_invoice_line_items', 'getpaid_display_invoice_subscriptions', 15 );
@@ -1112,6 +1114,11 @@ add_action( 'wpinv_cart_empty', 'wpinv_empty_checkout_cart' );
  * Filters the receipt page.
  */
 function wpinv_filter_success_page_content( $content ) {
+
+    // Maybe abort early.
+    if ( is_admin() || ! is_singular() || ! in_the_loop() || ! is_main_query() || is_preview() ) {
+        return $content;
+    }
 
     // Ensure this is our page.
     if ( isset( $_GET['payment-confirm'] ) && wpinv_is_success_page() ) {
