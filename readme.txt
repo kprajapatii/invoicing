@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.7
-Stable tag: 2.3.0
+Stable tag: 2.3.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -133,9 +133,13 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 
 == Changelog ==
 
+= 2.3.2 =
+* Replace subscription interval select with a number input box - CHANGED
+
 = 2.3.1 =
 * New user notification emails can now be enabled/disabled via GetPaid > Settings > Misc > Disable new user emails
 * UsersWP integration now overwrites invoice history page - ADDED
+* Display invoice description in invoice emails - ADDED
 
 = 2.3.0 =
 * Indicate first renewal date if possible - ADDED
