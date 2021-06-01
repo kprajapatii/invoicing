@@ -15,15 +15,15 @@ function wpinv_get_payment_gateways() {
 }
 
 function wpinv_payment_gateway_titles( $all_gateways ) {
-    global $wpinv_options;
 
+    $options  = wpinv_get_options();
     $gateways = array();
     foreach ( $all_gateways as $key => $gateway ) {
-        if ( !empty( $wpinv_options[$key . '_title'] ) ) {
-            $all_gateways[$key]['checkout_label'] = __( $wpinv_options[$key . '_title'], 'invoicing' );
+        if ( !empty( $options[$key . '_title'] ) ) {
+            $all_gateways[$key]['checkout_label'] = __( $options[$key . '_title'], 'invoicing' );
         }
 
-        $gateways[$key] = isset( $wpinv_options[$key . '_ordering'] ) ? $wpinv_options[$key . '_ordering'] : ( isset( $gateway['ordering'] ) ? $gateway['ordering'] : '' );
+        $gateways[$key] = isset( $options[$key . '_ordering'] ) ? $options[$key . '_ordering'] : ( isset( $gateway['ordering'] ) ? $gateway['ordering'] : '' );
     }
 
     asort( $gateways );
@@ -36,55 +36,67 @@ function wpinv_payment_gateway_titles( $all_gateways ) {
 }
 add_filter( 'wpinv_payment_gateways', 'wpinv_payment_gateway_titles', 1000, 1 );
 
+/**
+ * Returns an array of enabled gateways.
+ *
+ * @param bool $sort
+ * @return array
+ */
 function wpinv_get_enabled_payment_gateways( $sort = false ) {
-    $gateways = wpinv_get_payment_gateways();
-    $enabled  = wpinv_get_option( 'gateways', array( 'manual' => 1 ) );
 
-    $gateway_list = array();
+    $enabled = array();
 
-    foreach ( $gateways as $key => $gateway ) {
-        if ( isset( $enabled[ $key ] ) && $enabled[ $key ] == 1 ) {
-            $gateway_list[ $key ] = $gateway;
+    foreach ( wpinv_get_payment_gateways() as $gateway => $data ) {
+
+        if ( (int) wpinv_get_option( "{$gateway}_active", $gateway === 'manual' ) === 1 ) {
+            $enabled[ $gateway ] = $data;
         }
+
     }
 
     if ( true === $sort ) {
-        uasort( $gateway_list, 'wpinv_sort_gateway_order' );
+        uasort( $enabled, 'wpinv_sort_gateway_order' );
 
         // Reorder our gateways so the default is first
         $default_gateway_id = wpinv_get_default_gateway();
+        if ( isset( $enabled[ $default_gateway_id ] ) ) {
+            $default_gateway = array(
+                $default_gateway_id => $enabled[ $default_gateway_id ]
+            );
 
-        if ( wpinv_is_gateway_active( $default_gateway_id ) ) {
-            $default_gateway    = array( $default_gateway_id => $gateway_list[ $default_gateway_id ] );
-            unset( $gateway_list[ $default_gateway_id ] );
-
-            $gateway_list = array_merge( $default_gateway, $gateway_list );
+            unset( $enabled[ $default_gateway_id ] );
+            $enabled = array_merge( $default_gateway, $enabled );
         }
+
     }
 
-    return apply_filters( 'wpinv_enabled_payment_gateways', $gateway_list );
+    return apply_filters( 'wpinv_enabled_payment_gateways', $enabled );
 }
 
 function wpinv_sort_gateway_order( $a, $b ) {
     return $a['ordering'] - $b['ordering'];
 }
 
+/**
+ * Checks if a given gateway is active.
+ *
+ * @param string $gateway
+ * @return bool
+ */
 function wpinv_is_gateway_active( $gateway ) {
-    $gateways = wpinv_get_enabled_payment_gateways();
-
-    $ret = is_array($gateways) && $gateway ?  array_key_exists( $gateway, $gateways ) : false;
-
-    return apply_filters( 'wpinv_is_gateway_active', $ret, $gateway, $gateways );
+    $is_active = (int) wpinv_get_option( "{$gateway}_active", $gateway === 'manual' ) === 1 ;
+    return apply_filters( 'wpinv_is_gateway_active', $is_active, $gateway );
 }
 
+/**
+ * Retrieves the default gateway.
+ *
+ * @return string|false
+ */
 function wpinv_get_default_gateway() {
-    $default = wpinv_get_option( 'default_gateway', 'paypal' );
-
-    if ( !wpinv_is_gateway_active( $default ) ) {
-        $gateways = wpinv_get_enabled_payment_gateways();
-        $gateways = array_keys( $gateways );
-        $default  = reset( $gateways );
-    }
+    $default  = wpinv_get_option( 'default_gateway' );
+    $gateways = wpinv_get_enabled_payment_gateways();
+    $default  = ! empty( $default ) && isset( $gateways[ $default ] ) ? $default : false;
 
     return apply_filters( 'wpinv_default_gateway', $default );
 }
@@ -114,9 +126,9 @@ function wpinv_get_gateway_admin_label( $gateway ) {
  * @param string $gateway
  */
 function wpinv_get_gateway_description( $gateway ) {
-    global $wpinv_options;
 
-    $description = ! empty( $wpinv_options[$gateway . '_desc'] ) ? $wpinv_options[$gateway . '_desc'] : '';
+    $options     = wpinv_get_options();
+    $description = ! empty( $options[$gateway . '_desc'] ) ? $options[$gateway . '_desc'] : '';
 
     return apply_filters( 'wpinv_gateway_description', $description, $gateway );
 }
@@ -138,11 +150,10 @@ function wpinv_get_gateway_checkout_label( $gateway ) {
 
 function wpinv_settings_sections_gateways( $settings ) {
     $gateways = wpinv_get_payment_gateways();
+    ksort( $gateways );
 
-    if (!empty($gateways)) {
-        foreach  ($gateways as $key => $gateway) {
-            $settings[$key] = $gateway['admin_label'];
-        }
+    foreach  ( $gateways as $key => $gateway ) {
+        $settings[ $key ] = $gateway['admin_label'];
     }
 
     return $settings;
@@ -175,6 +186,7 @@ function wpinv_settings_gateways( $settings ) {
                 'name' => __( 'Activate', 'invoicing' ),
                 'desc' => wp_sprintf( __( 'Enable %s', 'invoicing' ), $gateway['admin_label'] ),
                 'type' => 'checkbox',
+                'std'  => $key === 'manual' ? '1' : '0',
             ),
 
             // Activate/Deactivate sandbox.
@@ -318,84 +330,6 @@ function wpinv_count_sales_by_gateway( $gateway_id = 'paypal', $status = 'publis
 		$ret = $payments->post_count;
 	return $ret;
 }
-
-function wpinv_settings_update_gateways( $input ) {
-    global $wpinv_options;
-
-    if ( !empty( $input['save_gateway'] ) ) {
-        $gateways = wpinv_get_option( 'gateways', array( 'manual' => 1 ) );
-        $gateways = !empty($gateways) ? $gateways : array();
-        $gateway = $input['save_gateway'];
-
-        if ( !empty( $input[$gateway . '_active'] ) ) {
-            $gateways[$gateway] = 1;
-        } else {
-            if ( isset( $gateways[$gateway] ) ) {
-                unset( $gateways[$gateway] );
-            }
-        }
-
-        $input['gateways'] = $gateways;
-    }
-
-    if ( !empty( $input['default_gateway'] ) ) {
-        $gateways = wpinv_get_payment_gateways();
-
-        foreach ( $gateways as $key => $gateway ) {
-            $active   = 0;
-            if ( !empty( $input['gateways'] ) && !empty( $input['gateways'][$key] ) ) {
-                $active = 1;
-            }
-
-            $input[$key . '_active'] = $active;
-
-            if ( empty( $wpinv_options[$key . '_title'] ) ) {
-                $input[$key . '_title'] = $gateway['checkout_label'];
-            }
-
-            if ( !isset( $wpinv_options[$key . '_ordering'] ) && isset( $gateway['ordering'] ) ) {
-                $input[$key . '_ordering'] = $gateway['ordering'];
-            }
-        }
-    }
-
-    return $input;
-}
-add_filter( 'wpinv_settings_tab_gateways_sanitize', 'wpinv_settings_update_gateways', 10, 1 );
-
-// PayPal Standard settings
-function wpinv_gateway_settings_paypal( $setting ) {
-    $setting['paypal_active']['desc'] = $setting['paypal_active']['desc'] . ' ' . __( '( Supported Currencies: AUD, BRL, CAD, CZK, DKK, EUR, HKD, HUF, ILS, JPY, MYR, MXN, NOK, NZD, PHP, PLN, GBP, SGD, SEK, CHF, TWD, THB, USD )', 'invoicing' );
-    $setting['paypal_desc']['std'] = __( 'Pay via PayPal: you can pay with your credit card if you don\'t have a PayPal account.', 'invoicing' );
-
-    $setting['paypal_sandbox'] = array(
-            'type' => 'checkbox',
-            'id'   => 'paypal_sandbox',
-            'name' => __( 'PayPal Sandbox', 'invoicing' ),
-            'desc' => __( 'PayPal sandbox can be used to test payments.', 'invoicing' ),
-            'std'  => 1
-        );
-
-    $setting['paypal_email'] = array(
-            'type' => 'text',
-            'id'   => 'paypal_email',
-            'name' => __( 'PayPal Email', 'invoicing' ),
-            'desc' => __( 'Please enter your PayPal account\'s email address. Ex: myaccount@paypal.com', 'invoicing' ),
-            'std' => __( 'myaccount@paypal.com', 'invoicing' ),
-        );
-    /*
-    $setting['paypal_ipn_url'] = array(
-            'type' => 'text',
-            'id'   => 'paypal_ipn_url',
-            'name' => __( 'PayPal IPN Url', 'invoicing' ),
-            'desc' => __( 'Configure Instant Payment Notifications(IPN) url at PayPal. Ex: http://yoursite.com/?wpi-ipn=paypal', 'invoicing' ),
-            'size' => 'large'
-        );
-    */
-
-    return $setting;
-}
-add_filter( 'wpinv_gateway_settings_paypal', 'wpinv_gateway_settings_paypal', 10, 1 );
 
 /**
  * Displays the ipn url field.

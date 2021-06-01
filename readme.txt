@@ -4,7 +4,7 @@ Donate link: https://www.ko-fi.com/stiofan
 Tags:  payments, invoice, invoicing, Recurring payments, Paypal, Stripe, credit card payments, buy now button, checkout form, payments form builder,
 Requires at least: 4.9
 Tested up to: 5.7
-Stable tag: 2.3.2
+Stable tag: 2.3.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -132,6 +132,12 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 9. Single invoice view page.
 
 == Changelog ==
+
+= 2.3.3 = 
+* Edit buttons in settings on GetPaid Pages - ADDED
+* Manual gateway shows as activated if there's no active gateway - FIXED
+* Gateways overview settings page incorrectly shows "subscription support" information - FIXED
+* Authorize.NET shows error if a customer tries to checkout again after previously failing - FIXED
 
 = 2.3.2 =
 * Replace subscription interval select with a number input box - CHANGED

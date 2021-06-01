@@ -4,9 +4,10 @@
  *
  */
 
-use Automattic\Jetpack\ConnectionUI\Admin;
-
 defined( 'ABSPATH' ) || exit;
+
+$gateways = wpinv_get_payment_gateways();
+ksort( $gateways );
 
 ?>
 <div class="table-responsive">
@@ -34,7 +35,7 @@ defined( 'ABSPATH' ) || exit;
         </thead>
 
         <tbody>
-            <?php foreach ( wpinv_get_payment_gateways() as $id => $gateway ) : ?>
+            <?php foreach ( $gateways as $id => $gateway ) : ?>
                 <tr>
                     <td class="getpaid-payment-method text-left">
                         <a style="color: #0073aa;" href="<?php echo esc_url( add_query_arg( 'section', $id ) ); ?>" class="font-weight-bold"><?php echo sanitize_text_field( $gateway['admin_label'] ); ?></a>
