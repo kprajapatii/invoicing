@@ -70,7 +70,7 @@ class GetPaid_Authorize_Net_Gateway extends GetPaid_Authorize_Net_Legacy_Gateway
         $this->method_title         = __( 'Authorize.Net', 'invoicing' );
         $this->notify_url           = getpaid_get_non_query_string_ipn_url( $this->id );
 
-        add_filter( 'getpaid_daily_maintenance_should_expire_subscription', array( $this, 'maybe_renew_subscription' ), 10, 2 );
+        add_action( 'getpaid_should_renew_subscription', array( $this, 'maybe_renew_subscription' ) );
         add_filter( 'getpaid_authorizenet_sandbox_notice', array( $this, 'sandbox_notice' ) );
         parent::__construct();
     }
@@ -138,6 +138,13 @@ class GetPaid_Authorize_Net_Gateway extends GetPaid_Authorize_Net_Legacy_Gateway
         $response = $this->post( apply_filters( 'getpaid_authorizenet_customer_profile_args', $args, $invoice ), $invoice );
 
         if ( is_wp_error( $response ) ) {
+
+            // In case the payment profile already exists remotely.
+            if ( 'dup_payment_profile' == $response->get_error_code() ) {
+                $customer_profile_id = strtok( $response->get_error_message(), '.' );
+                update_user_meta( $invoice->get_user_id(), $this->get_customer_profile_meta_name( $invoice ), $customer_profile_id );
+                return strtok( '.' );
+            }
 
             // In case the customer profile already exists remotely.
             if ( 'E00039' == $response->get_error_code() ) {
@@ -250,6 +257,19 @@ class GetPaid_Authorize_Net_Gateway extends GetPaid_Authorize_Net_Legacy_Gateway
         $response = $this->post( apply_filters( 'getpaid_authorizenet_create_customer_payment_profile_args', $args, $invoice ), $invoice );
 
         if ( is_wp_error( $response ) ) {
+
+            // In case the payment profile already exists remotely.
+            if ( 'dup_payment_profile' == $response->get_error_code() ) {
+                $customer_profile_id = strtok( $response->get_error_message(), '.' );
+                $payment_profile_id  = strtok( '.' );
+                update_user_meta( $invoice->get_user_id(), $this->get_customer_profile_meta_name( $invoice ), $customer_profile_id );
+
+                // Cache payment profile id.
+                $this->add_payment_profile_to_cache( $payment_information, $payment_profile_id );
+
+                return $payment_profile_id;
+            }
+
             return $response;
         }
 
@@ -674,25 +694,14 @@ class GetPaid_Authorize_Net_Gateway extends GetPaid_Authorize_Net_Legacy_Gateway
 	 * (Maybe) renews an authorize.net subscription profile.
 	 *
 	 *
-	 * @param bool $should_expire
      * @param WPInv_Subscription $subscription
 	 */
-	public function maybe_renew_subscription( $should_expire, $subscription ) {
+	public function maybe_renew_subscription( $subscription ) {
 
         // Ensure its our subscription && it's active.
-        if ( $this->id != $subscription->get_gateway() || ! $subscription->has_status( 'active trialling' ) ) {
-            return $should_expire;
+        if ( $this->id == $subscription->get_gateway() && $subscription->has_status( 'active trialling' ) ) {
+            $this->renew_subscription( $subscription );
         }
-
-        // If this is the last renewal, complete the subscription.
-        if ( $subscription->is_last_renewal() ) {
-            $subscription->complete();
-            return false;
-        }
-
-        $this->renew_subscription( $subscription );
-
-        return false;
 
 	}
 

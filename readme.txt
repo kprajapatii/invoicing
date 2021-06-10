@@ -133,6 +133,13 @@ Automatic updates should seamlessly work. We always suggest you backup up your w
 
 == Changelog ==
 
+= 2.3.7 =
+* Renew Authorize.NET suscriptions on the expiry date instead of one day after expiry - CHANGED
+* Option to stop GetPaid from sending emails for free invoices - ADDED
+* MaxMind database API key not saving - FIXED
+* [Authorize.NET] Unable to pay with the same card twice when logged out - FIXED
+* Stripe addon cannot be installed from the GetPaid extensions page - FIXED
+
 = 2.3.6 =
 * Unable to use equal prices in price select field - FIXED
 * Display selected price label in invoice and emails - ADDED
