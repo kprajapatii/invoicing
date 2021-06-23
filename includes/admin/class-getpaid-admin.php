@@ -72,6 +72,15 @@ class GetPaid_Admin {
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		do_action( 'getpaid_init_admin_hooks', $this );
 
+		// Setup/welcome
+		if ( ! empty( $_GET['page'] ) ) {
+			switch ( $_GET['page'] ) {
+				case 'gp-setup' :
+					include_once( dirname( __FILE__ ) . '/class-getpaid-admin-setup-wizard.php' );
+					break;
+			}
+		}
+
     }
 
     /**
@@ -89,7 +98,7 @@ class GetPaid_Admin {
         }
 
         // General styles.
-        if ( false !== stripos( $page, 'wpi' ) ) {
+        if ( false !== stripos( $page, 'wpi' ) || 'gp-setup' == $page ) {
 
             // Styles.
             $version = filemtime( WPINV_PLUGIN_DIR . 'assets/css/admin.css' );
