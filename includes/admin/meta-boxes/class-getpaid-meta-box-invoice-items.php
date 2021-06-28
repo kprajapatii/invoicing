@@ -29,9 +29,6 @@ class GetPaid_Meta_Box_Invoice_Items {
         // Invoice items.
         $items = $invoice->get_items();
 
-        // New item url.
-        $new_item = admin_url( 'post-new.php?post_type=wpi_item' );
-
         $totals = array(
 
             'subtotal'  => array(
@@ -58,6 +55,22 @@ class GetPaid_Meta_Box_Invoice_Items {
         if ( ! wpinv_use_taxes() ) {
             unset( $totals['tax'] );
         }
+
+        $item_args = array(
+            'post_type'      => 'wpi_item',
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            'posts_per_page' => -1,
+            'post_status'    => array( 'publish' ),
+            'meta_query'     => array(
+                array(
+                    'key'       => '_wpinv_type',
+                    'compare'   => '!=',
+                    'value'     => 'package'
+                )
+            )
+        );
+
         ?>
 
         <style>
@@ -150,7 +163,7 @@ class GetPaid_Meta_Box_Invoice_Items {
                             <tr class="hide-if-has-items hide-if-not-editable">
                                 <td colspan="2" class="pt-4 pb-4">
                                     <button type="button" class="button button-primary add-invoice-item" data-toggle="modal" data-target="#getpaid-add-items-to-invoice"><?php _e( 'Add Existing Items', 'invoicing' ) ?></button>
-	                                <a href="<?php echo esc_url( $new_item ); ?>" target="_blank" class="button button-secondary"><?php _e( 'Create New Item', 'invoicing' ) ?></a>
+                                    <button type="button" class="button button-secondary create-invoice-item" data-toggle="modal" data-target="#getpaid-create-invoice-item"><?php _e( 'Create New Item', 'invoicing' ) ?></button>
                                 </td>
                                 <td class="hide-if-amount">&nbsp;</th>
                                 <td class="hide-if-amount">&nbsp;</th>
@@ -199,8 +212,8 @@ class GetPaid_Meta_Box_Invoice_Items {
                     <div class="getpaid-invoice-item-actions hide-if-no-items hide-if-not-editable">
                         <div class="row">
                             <div class="text-left col-12 col-sm-8">
-                                <button type="button" class="button add-invoice-item" data-toggle="modal" data-target="#getpaid-add-items-to-invoice"><?php _e( 'Add Existing Item', 'invoicing' ) ?></button>
-                                <a href="<?php echo esc_url( $new_item ); ?>" target="_blank" class="button button-secondary"><?php _e( 'Create New Item', 'invoicing' ) ?></a>
+                                <button type="button" class="button button-primary add-invoice-item" data-toggle="modal" data-target="#getpaid-add-items-to-invoice"><?php _e( 'Add Existing Item', 'invoicing' ) ?></button>
+                                <button type="button" class="button button-secondary create-invoice-item" data-toggle="modal" data-target="#getpaid-create-invoice-item"><?php _e( 'Create New Item', 'invoicing' ) ?></button>
                                 <?php do_action( 'getpaid-invoice-items-actions', $invoice ); ?>
                             </div>
                             <div class="text-right col-12 col-sm-4">
@@ -237,7 +250,12 @@ class GetPaid_Meta_Box_Invoice_Items {
 										<tbody>
 								            <tr>
 									            <td class="pl-0 text-left">
-                                                    <select class="getpaid-item-search regular-text" data-placeholder="<?php esc_attr_e( 'Search for an item…', 'invoicing' ); ?>"></select>
+                                                    <select class="regular-text getpaid-add-invoice-item-select">
+                                                        <option value="" selected="selected" disabled><?php esc_html_e( 'Select an item…', 'invoicing' ); ?></option>
+                                                        <?php foreach ( get_posts( $item_args ) as $item ) : ?>
+                                                        <option value="<?php echo (int) $item->ID; ?>"><?php echo strip_tags( $item->post_title ); ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
                                                 </td>
 									            <td class="pr-0 text-right hide-if-amount">
                                                     <input type="number" class="w100" step="1" min="1" autocomplete="off" value="1" placeholder="1">
@@ -249,6 +267,46 @@ class GetPaid_Meta_Box_Invoice_Items {
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary getpaid-cancel" data-dismiss="modal"><?php _e( 'Cancel', 'invoicing' ); ?></button>
                                     <button type="button" class="btn btn-primary getpaid-add" data-dismiss="modal"><?php _e( 'Add', 'invoicing' ); ?></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Create invoice item -->
+                    <div class="modal fade" id="getpaid-create-invoice-item" tabindex="-1" role="dialog" aria-labelledby="getpaid-create-invoice-item-label" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="getpaid-create-invoice-item-label"><?php _e( "Create Item", 'invoicing' ); ?></h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="<?php _e( "Close", 'invoicing' ); ?>">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="getpaid-create-item-div">
+                                        <input type="hidden" name="id" value="new" class="form-control form-control-sm item-id">
+                                        <label class="form-group w-100">
+                                            <span><?php _e( 'Name', 'invoicing' ); ?></span>
+                                            <input type="text" name="name" placeholder="<?php esc_attr_e( 'Item Name', 'invoicing' ); ?>" class="form-control form-control-sm item-name">
+                                        </label>
+                                        <label class="form-group w-100">
+                                            <span class="getpaid-hide-if-hours getpaid-hide-if-quantity item-price"><?php _e( 'Amount', 'invoicing' ); ?></span>
+                                            <span class="hide-if-amount"><?php _e( 'Price', 'invoicing' ); ?></span>
+                                            <input type="text" name="price" placeholder="<?php echo wpinv_sanitize_amount( 0 ); ?>" class="form-control form-control-sm item-price">
+                                        </label>
+                                        <label class="form-group w-100 hide-if-amount">
+                                            <span><?php _e( 'Quantity', 'invoicing' ); ?></span>
+                                            <input type="text" name="quantity" placeholder="1" class="form-control form-control-sm item-quantity">
+                                        </label>
+                                        <label class="form-group w-100">
+                                            <span><?php _e( 'Item Description', 'invoicing' ); ?></span>
+                                            <textarea name="description" placeholder="<?php esc_attr_e( 'Enter a description for this item', 'invoicing' ); ?>" class="form-control item-description"></textarea>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary getpaid-cancel" data-dismiss="modal"><?php _e( 'Cancel', 'invoicing' ); ?></button>
+                                    <button type="button" class="btn btn-primary getpaid-save" data-dismiss="modal"><?php _e( 'Create', 'invoicing' ); ?></button>
                                 </div>
                             </div>
                         </div>

@@ -69,6 +69,8 @@ class GetPaid_Admin {
 		add_action( 'getpaid_authenticated_admin_action_migrate_old_invoices', array( $this, 'admin_migrate_old_invoices' ) );
 		add_action( 'getpaid_authenticated_admin_action_download_customers', array( $this, 'admin_download_customers' ) );
 		add_action( 'getpaid_authenticated_admin_action_recalculate_discounts', array( $this, 'admin_recalculate_discounts' ) );
+		add_action( 'getpaid_authenticated_admin_action_install_plugin', array( $this, 'admin_install_plugin' ) );
+		add_action( 'getpaid_authenticated_admin_action_connect_gateway', array( $this, 'admin_connect_gateway' ) );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		do_action( 'getpaid_init_admin_hooks', $this );
 
@@ -109,7 +111,7 @@ class GetPaid_Admin {
             wp_enqueue_script('select2', WPINV_PLUGIN_URL . 'assets/js/select2/select2.full.min.js', array( 'jquery' ), WPINV_VERSION );
 
             $version = filemtime( WPINV_PLUGIN_DIR . 'assets/js/admin.js' );
-            wp_enqueue_script( 'wpinv-admin-script', WPINV_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'wp-color-picker' ),  $version );
+            wp_enqueue_script( 'wpinv-admin-script', WPINV_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'wp-color-picker', 'jquery-ui-tooltip' ),  $version );
             wp_localize_script( 'wpinv-admin-script', 'WPInv_Admin', apply_filters( 'wpinv_admin_js_localize', $this->get_admin_i18() ) );
 
         }
@@ -587,6 +589,80 @@ class GetPaid_Admin {
 		}
 
 		fclose( $output );
+		exit;
+
+	}
+
+	/**
+     * Installs a plugin.
+	 *
+	 * @param array $data
+     */
+    public function admin_install_plugin( $data ) {
+
+		if ( ! empty( $data['plugins'] ) ) {
+			include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+			wp_cache_flush();
+
+			foreach ( $data['plugins'] as $slug => $file ) {
+				$plugin_zip = esc_url( 'https://downloads.wordpress.org/plugin/' . $slug . '.latest-stable.zip' );
+				$upgrader   = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+				$installed  = $upgrader->install( $plugin_zip );
+
+				if ( ! is_wp_error( $installed ) && $installed ) {
+					activate_plugin( $file, '', false, true );
+				} else {
+					wpinv_error_log( $upgrader->skin->get_upgrade_messages(), false );
+				}
+
+			}
+
+		}
+
+		$redirect = isset( $data['redirect'] ) ? esc_url_raw( $data['redirect'] ) : admin_url( 'plugins.php' );
+		wp_safe_redirect( $redirect );
+		exit;
+
+	}
+
+	/**
+     * Connects a gateway.
+	 *
+	 * @param array $data
+     */
+    public function admin_connect_gateway( $data ) {
+
+		if ( ! empty( $data['plugin'] ) ) {
+
+			$gateway     = sanitize_key( $data['plugin'] );
+			$connect_url = apply_filters( "getpaid_get_{$gateway}_connect_url", false, $data );
+
+			if ( ! empty( $connect_url ) ) {
+				wp_redirect( $connect_url );
+				exit;
+			}
+
+			if ( 'stripe' == $data['plugin'] ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+				if ( ! array_key_exists( 'getpaid-stripe-payments/getpaid-stripe-payments.php', get_plugins() ) ) {
+					$plugin_zip = esc_url( 'https://downloads.wordpress.org/plugin/getpaid-stripe-payments.latest-stable.zip' );
+					$upgrader   = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+					$upgrader->install( $plugin_zip );
+				}
+
+				activate_plugin( 'getpaid-stripe-payments/getpaid-stripe-payments.php', '', false, true );
+			}
+
+			if ( ! empty( $connect_url ) ) {
+				wp_redirect( $connect_url );
+				exit;
+			}
+
+		}
+
+		$redirect = isset( $data['redirect'] ) ? esc_url_raw( urldecode( $data['redirect'] ) ) : admin_url( 'admin.php?page=wpinv-settings&tab=gateways' );
+		wp_safe_redirect( $redirect );
 		exit;
 
 	}

@@ -175,6 +175,14 @@ jQuery(function ($) {
 		getpaid.init_select2_customer_search(el, $(el).parent())
 	});
 
+	$('.getpaid-install-plugin-siwtch-div').on('click', function (e) {
+		e.preventDefault()
+
+		var _input = $( this ).find('input')
+		_input.prop( 'checked', ! _input.prop( 'checked' ) );
+
+	})
+
 	// returns a random string
 	function random_string() {
 		return (Date.now().toString(36) + Math.random().toString(36).substr(2))
@@ -443,13 +451,13 @@ jQuery(function ($) {
 				$('#getpaid-add-items-to-invoice tbody').html()
 			)
 
-		getpaid.init_select2_item_search('.getpaid-item-search')
+		$('.getpaid-add-invoice-item-select').select2()
 
 		// Add a unique id.
-		$('.getpaid-item-search').data('key', random_string())
+		$('.getpaid-add-invoice-item-select').data('key', random_string())
 
 		// (Maybe) add another select box.
-		$('#getpaid-add-items-to-invoice').on('change', '.getpaid-item-search', function (e) {
+		$('#getpaid-add-items-to-invoice').on('change', '.getpaid-add-invoice-item-select', function (e) {
 
 			var el = $(this)
 			var key = el.data('key')
@@ -476,9 +484,8 @@ jQuery(function ($) {
 			var key = random_string()
 			var row = $('#getpaid-add-items-to-invoice tbody').data('row')
 			row = $(row).appendTo('#getpaid-add-items-to-invoice tbody')
-			var select = row.find('.getpaid-item-search')
-			select.data('key', key)
-			getpaid.init_select2_item_search(select)
+			var select = row.find('.getpaid-add-invoice-item-select')
+			select.data('key', key).select2()
 			empty_select.push(key)
 
 			$('#getpaid-add-items-to-invoice').modal('handleUpdate')
@@ -494,10 +501,10 @@ jQuery(function ($) {
 					$('#getpaid-add-items-to-invoice tbody').data('row')
 				)
 
-			getpaid.init_select2_item_search('.getpaid-item-search')
+				$('.getpaid-add-invoice-item-select').select2()
 
 			// Add a unique id.
-			$('.getpaid-item-search').data('key', random_string())
+			$('.getpaid-add-invoice-item-select').data('key', random_string())
 		}
 
 		// Cancel addition.
@@ -689,6 +696,11 @@ jQuery(function ($) {
 		$('#getpaid-edit-invoice-item .getpaid-edit-item-div :input').val('')
 	})
 
+	// Cancel item creation.
+	$('#getpaid-create-invoice-item .getpaid-cancel').on('click', function () {
+		$('#getpaid-create-invoice-item .getpaid-create-item-div :input').val('')
+	})
+
 	// Save edited invoice item.
 	$('#getpaid-edit-invoice-item .getpaid-save').on('click', function () {
 
@@ -710,6 +722,53 @@ jQuery(function ($) {
 		// Save the edit.
 		var post_data = {
 			action: 'wpinv_edit_invoice_item',
+			post_id: $('#post_ID').val(),
+			_ajax_nonce: WPInv_Admin.wpinv_nonce,
+			data: data,
+		}
+
+		$.post(WPInv_Admin.ajax_url, post_data)
+
+			.done(function (response) {
+
+				if (response.success) {
+					getpaid_replace_invoice_items(response.data.items)
+
+					if (response.data.alert) {
+						alert(response.data.alert)
+					}
+
+					recalculateTotals()
+				}
+
+			})
+
+			.always(function (response) {
+				wpinvUnblock('.getpaid-invoice-items-inner');
+			})
+	})
+
+	// Save created invoice item.
+	$('#getpaid-create-invoice-item .getpaid-save').on('click', function () {
+
+		// Retrieve item data.
+		var data = $('#getpaid-create-invoice-item .getpaid-create-item-div :input')
+			.map(function () {
+				return {
+					'field': $(this).attr('name'),
+					'value': $(this).val(),
+				}
+			})
+			.get()
+
+		$('#getpaid-create-invoice-item .getpaid-create-item-div :input').val('')
+
+		// Block the metabox.
+		wpinvBlock('.getpaid-invoice-items-inner')
+
+		// Save the edit.
+		var post_data = {
+			action: 'wpinv_create_invoice_item',
 			post_id: $('#post_ID').val(),
 			_ajax_nonce: WPInv_Admin.wpinv_nonce,
 			data: data,
