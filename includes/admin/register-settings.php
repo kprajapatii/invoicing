@@ -272,6 +272,10 @@ function wpinv_settings_sanitize( $input = array() ) {
 
     wp_parse_str( $raw_referrer, $referrer );
 
+	if ( in_array( 'gp-setup', $referrer ) ) {
+		return array_merge( $wpinv_options, $input );
+	}
+
     $settings = wpinv_get_registered_settings();
     $tab      = isset( $referrer['tab'] ) ? $referrer['tab'] : 'general';
     $section  = isset( $referrer['section'] ) ? $referrer['section'] : 'main';
@@ -1008,6 +1012,18 @@ function wpinv_tools_callback($args) {
 							)
 						);
 					?>" class="button button-primary"><?php _e( 'Run', 'invoicing' );?></a>
+                </td>
+            </tr>
+
+			<tr>
+                <td><?php _e( 'Set-up Wizard', 'invoicing' );?></td>
+                <td>
+                    <small><?php _e( 'Launch the quick set-up wizard.', 'invoicing' ); ?></small>
+                </td>
+                <td>
+					<a href="<?php
+						echo esc_url( admin_url( 'index.php?page=gp-setup' ) );
+					?>" class="button button-primary"><?php _e( 'Launch', 'invoicing' );?></a>
                 </td>
             </tr>
 
