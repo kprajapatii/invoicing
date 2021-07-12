@@ -48,6 +48,10 @@ class GetPaid_Meta_Box_Invoice_Items {
 
     public static function output( $post, $invoice = false ) {
 
+        if ( apply_filters( 'getpaid_use_new_invoice_items_metabox', false ) ) {
+            return self::output2( $post );
+        }
+
         $post_id            = !empty( $post->ID ) ? $post->ID : 0;
         $invoice            = $invoice instanceof WPInv_Invoice ? $invoice : new WPInv_Invoice( $post_id );
         $use_taxes          = $invoice->is_taxable() && wpinv_use_taxes();
@@ -117,7 +121,7 @@ class GetPaid_Meta_Box_Invoice_Items {
                                                     </span>
                                                 </label>
                                             </div>
-                            
+
                                             <div class="wp-clearfix">
                                                 <label class="wpi-item-name">
                                                     <span class="input-text-wrap">
@@ -182,7 +186,7 @@ class GetPaid_Meta_Box_Invoice_Items {
                                                     </label>
                                                 </div>
                                             <?php endif; ?>
-                                            
+
                                             <div class="wp-clearfix">
                                                 <label class="wpi-item-actions">
                                                     <span class="input-text-wrap">
@@ -398,7 +402,7 @@ class GetPaid_Meta_Box_Invoice_Items {
             }
         </style>
 
-                <div class="bsui getpaid-invoice-items-inner <?php echo sanitize_html_class( $invoice->get_template( 'edit' ) ); ?> <?php echo empty( $items ) ? 'no-items' : 'has-items'; ?> <?php echo $invoice->is_paid() || $invoice->is_refunded() ? 'not-editable' : 'editable'; ?>" style="margin-top: 1.5rem">
+                <div class="bsui getpaid-invoice-items-inner <?php echo empty( $items ) ? 'no-items' : 'has-items'; ?> <?php echo $invoice->is_paid() || $invoice->is_refunded() ? 'not-editable' : 'editable'; ?>" style="margin-top: 1.5rem; padding: 0 12px 12px;">
 
                     <?php if ( ! $invoice->is_paid() && ! $invoice->is_refunded() ) : ?>
                         <?php do_action( 'wpinv_meta_box_before_invoice_template_row', $invoice->get_id() ); ?>
