@@ -147,6 +147,7 @@ Automatic updates should work seamlessly. To avoid unforeseen problems, we alway
 = 2.8.17 - TBD =
 * Renewal invoice shows incorrect total when tax & discount applied to invoice - FIXED
 * Discount code usages don't increase - FIXED
+* Item image is missing in invoice emails - FIXED
 
 = 2.8.16 - 2024-10-10 =
 * Update FlatPickr JS library to v4.6.13 - CHANGED
