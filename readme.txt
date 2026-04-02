@@ -142,6 +142,9 @@ Automatic updates should work seamlessly. To avoid unforeseen problems, we alway
 
 == Changelog ==
 
+= 2.8.47 - 2026-04-TBD =
+* WordPress 7.0 compatibility - COMPATIBILITY
+
 = 2.8.46 - 2025-03-10 =
 * Make billing email field readonly for logged in user - CHANGED
 
