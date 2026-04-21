@@ -142,6 +142,9 @@ Automatic updates should work seamlessly. To avoid unforeseen problems, we alway
 
 == Changelog ==
 
+= 2.8.48 - TBD =
+* Embed checkout - Render inside theme header/footer via `?wrap=true` query param (classic & block themes) - ADDED
+
 = 2.8.47 - 2026-04-02 =
 * WordPress 7.0 compatibility - COMPATIBILITY
 
