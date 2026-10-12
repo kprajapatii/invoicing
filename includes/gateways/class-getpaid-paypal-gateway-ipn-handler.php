@@ -457,20 +457,79 @@ class GetPaid_Paypal_Gateway_IPN_Handler {
 	/**
 	 * Handles subscription cancelations.
 	 *
+	 * PayPal does not say who cancelled a subscription, so we work it out from
+	 * the local subscription status:
+	 *
+	 * - If the subscription is already cancelled on the website, the cancellation
+	 *   was initiated from the website (e.g by an admin) and this IPN only confirms it.
+	 * - Otherwise, the cancellation was initiated in PayPal, either by the customer
+	 *   (from their PayPal account or the website's cancel link which redirects to PayPal)
+	 *   or by the merchant from the PayPal dashboard.
+	 *
 	 * @param WPInv_Invoice $invoice  Invoice object.
+	 * @param array    $posted Posted data.
 	 */
-	protected function ipn_txn_subscr_cancel( $invoice ) {
+	protected function ipn_txn_subscr_cancel( $invoice, $posted = array() ) {
+
+		wpinv_error_log( 'Processing subscription cancellation IPN for the invoice #' . $invoice->get_number() . ' (ID: ' . $invoice->get_id() . ')', false );
+		wpinv_error_log( 'Cancellation IPN details: ' . $this->get_ipn_subscription_log_details( $posted ), false );
 
 		// Make sure the invoice has a subscription.
 		$subscription = getpaid_subscriptions()->get_invoice_subscription( $invoice );
 
 		if ( empty( $subscription ) ) {
-			return wpinv_error_log( 'Aborting, Subscription for the invoice ' . $invoice->get_id() . ' not found', false );
+			return wpinv_error_log( 'Aborting, Subscription for the invoice ' . $invoice->get_id() . ' not found. It may have been deleted on the website (deleting a subscription also cancels it in PayPal).', false );
 		}
 
-		wpinv_error_log( 'Processing subscription cancellation for the invoice ' . $invoice->get_id(), false );
+		$old_status = $subscription->get_status();
+		$profile_id = $subscription->get_profile_id();
+		$subscr_id  = isset( $posted['subscr_id'] ) ? sanitize_text_field( $posted['subscr_id'] ) : '';
+
+		wpinv_error_log( 'Found subscription #' . $subscription->get_id() . ' with status "' . $old_status . '" and PayPal profile ID "' . $profile_id . '"', false );
+
+		if ( ! empty( $subscr_id ) && ! empty( $profile_id ) && $subscr_id !== $profile_id ) {
+			wpinv_error_log( 'Warning, PayPal subscription ID ' . $subscr_id . ' does not match the subscription profile ID ' . $profile_id, false );
+		}
+
+		$payer = $this->get_ipn_payer_label( $posted );
+
+		// Cancellation was initiated from the website.
+		if ( $subscription->has_status( 'cancelled' ) ) {
+			wpinv_error_log( 'Cancellation source: Website. Subscription #' . $subscription->get_id() . ' was already cancelled on the website before PayPal sent this IPN, the IPN only confirms the cancellation in PayPal.', false );
+
+			$invoice->add_note(
+				sprintf(
+					// translators: %1$s is the subscription ID, %2$s is the PayPal subscription ID.
+					__( 'PayPal confirmed the cancellation of subscription #%1$s (PayPal Subscription ID: %2$s). The cancellation was initiated from the website.', 'invoicing' ),
+					$subscription->get_id(),
+					$subscr_id
+				),
+				false,
+				false,
+				true
+			);
+
+			return wpinv_error_log( 'Subscription already cancelled, nothing to do.', false );
+		}
+
+		// Cancellation was initiated in PayPal.
+		wpinv_error_log( 'Cancellation source: PayPal. Subscription #' . $subscription->get_id() . ' was "' . $old_status . '" on the website, so it was cancelled directly in PayPal by the customer (' . $payer . ') or by the merchant from the PayPal account.', false );
+
+		$invoice->add_note(
+			sprintf(
+				// translators: %1$s is the subscription ID, %2$s is the PayPal subscription ID, %3$s is the payer.
+				__( 'Subscription #%1$s (PayPal Subscription ID: %2$s) was cancelled in PayPal by the customer (%3$s) or by the merchant from the PayPal account.', 'invoicing' ),
+				$subscription->get_id(),
+				$subscr_id,
+				$payer
+			),
+			false,
+			false,
+			true
+		);
+
 		$subscription->cancel();
-		wpinv_error_log( 'Subscription cancelled.', false );
+		wpinv_error_log( 'Subscription #' . $subscription->get_id() . ' cancelled. Status changed from "' . $old_status . '" to "' . $subscription->get_status() . '".', false );
 
 	}
 
@@ -522,7 +581,10 @@ class GetPaid_Paypal_Gateway_IPN_Handler {
 	 * @param WPInv_Invoice $invoice  Invoice object.
 	 * @param array    $posted Posted data.
 	 */
-	protected function ipn_txn_recurring_payment_suspended_due_to_max_failed_payment( $invoice ) {
+	protected function ipn_txn_recurring_payment_suspended_due_to_max_failed_payment( $invoice, $posted = array() ) {
+
+		wpinv_error_log( 'Processing subscription suspension IPN for the invoice #' . $invoice->get_number() . ' (ID: ' . $invoice->get_id() . ')', false );
+		wpinv_error_log( 'Suspension IPN details: ' . $this->get_ipn_subscription_log_details( $posted ), false );
 
 		// Make sure the invoice has a subscription.
 		$subscription = getpaid_subscriptions()->get_invoice_subscription( $invoice );
@@ -531,9 +593,75 @@ class GetPaid_Paypal_Gateway_IPN_Handler {
 			return wpinv_error_log( 'Aborting, Subscription for the invoice ' . $invoice->get_id() . ' not found', false );
 		}
 
-		wpinv_error_log( 'Processing subscription cancellation due to max failed payment for the invoice ' . $invoice->get_id(), false );
+		$old_status = $subscription->get_status();
+
+		wpinv_error_log( 'Cancellation source: PayPal (automatic). PayPal suspended subscription #' . $subscription->get_id() . ' after the maximum number of failed payments.', false );
+
+		$invoice->add_note(
+			sprintf(
+				// translators: %s is the subscription ID.
+				__( 'PayPal suspended subscription #%s after the maximum number of failed payments. The subscription has been cancelled.', 'invoicing' ),
+				$subscription->get_id()
+			),
+			false,
+			false,
+			true
+		);
+
 		$subscription->cancel();
-		wpinv_error_log( 'Subscription cancelled.', false );
+		wpinv_error_log( 'Subscription #' . $subscription->get_id() . ' cancelled. Status changed from "' . $old_status . '" to "' . $subscription->get_status() . '".', false );
+	}
+
+	/**
+	 * Returns a summary of the subscription related IPN fields for logging.
+	 *
+	 * @param array $posted Posted data.
+	 * @return string
+	 */
+	protected function get_ipn_subscription_log_details( $posted ) {
+
+		$fields = array(
+			'subscr_id'            => 'PayPal Subscription ID',
+			'recurring_payment_id' => 'PayPal Recurring Payment ID',
+			'payer_id'             => 'Payer ID',
+			'payer_email'          => 'Payer Email',
+			'first_name'           => 'First Name',
+			'last_name'            => 'Last Name',
+			'payer_status'         => 'Payer Status',
+			'receiver_email'       => 'Receiver Email',
+			'subscr_date'          => 'Subscription Date',
+			'ipn_track_id'         => 'IPN Track ID',
+			'test_ipn'             => 'Test IPN',
+		);
+
+		$details = array();
+		foreach ( $fields as $key => $label ) {
+			if ( isset( $posted[ $key ] ) && '' !== $posted[ $key ] ) {
+				$details[] = $label . ': ' . sanitize_text_field( $posted[ $key ] );
+			}
+		}
+
+		return empty( $details ) ? 'N/A' : implode( ', ', $details );
+	}
+
+	/**
+	 * Returns a label identifying the PayPal payer.
+	 *
+	 * @param array $posted Posted data.
+	 * @return string
+	 */
+	protected function get_ipn_payer_label( $posted ) {
+
+		$name  = trim( ( isset( $posted['first_name'] ) ? $posted['first_name'] : '' ) . ' ' . ( isset( $posted['last_name'] ) ? $posted['last_name'] : '' ) );
+		$parts = array_filter(
+			array(
+				sanitize_text_field( $name ),
+				isset( $posted['payer_email'] ) ? sanitize_email( $posted['payer_email'] ) : '',
+				isset( $posted['payer_id'] ) ? 'Payer ID: ' . sanitize_text_field( $posted['payer_id'] ) : '',
+			)
+		);
+
+		return empty( $parts ) ? __( 'unknown payer', 'invoicing' ) : implode( ', ', $parts );
 	}
 
 }
