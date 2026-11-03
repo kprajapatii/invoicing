@@ -225,47 +225,51 @@ class GetPaid_Metaboxes {
 	 * @param  object $post Post object.
 	 */
 	public static function save_meta_boxes( $post_id, $post ) {
+		// Checks run cheapest first, so unrelated saves return as early as possible.
+
+		// Only run once per request to avoid potential endless loops.
+		if ( self::$saved_meta_boxes ) {
+			return;
+		}
+
+		// Do not save for ajax requests, autosaves or bulk edits.
+		if ( ( defined( 'DOING_AJAX' ) && DOING_AJAX ) || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || isset( $_REQUEST['bulk_edit'] ) ) {
+			return;
+		}
+
+		// Only for posts submitted through the edit screen.
+		if ( empty( $_POST['post_ID'] ) || empty( $_POST['getpaid_meta_nonce'] ) ) {
+			return;
+		}
+
+		// $post_id and $post are required.
 		$post_id = absint( $post_id );
 
-		// Do not save for ajax requests.
-		if ( ( defined( 'DOING_AJAX' ) && DOING_AJAX ) || isset( $_REQUEST['bulk_edit'] ) ) {
+		if ( empty( $post_id ) || empty( $post ) || empty( $post->post_type ) || ! is_string( $post->post_type ) ) {
 			return;
 		}
 
-		// $post_id and $post are required
-		if ( empty( $post_id ) || empty( $post ) || empty( $post->post_type ) || self::$saved_meta_boxes ) {
-			return;
-		}
-
-		// Ensure this is our post type before touching the request data.
+		// Ensure this is our post type. Revisions and autosaves use the
+		// "revision" post type, so they are excluded here as well.
 		$post_types_map = array(
 			'wpi_item'         => 'GetPaid_Meta_Box_Item_Details',
 			'wpi_payment_form' => 'GetPaid_Meta_Box_Payment_Form',
 			'wpi_discount'     => 'GetPaid_Meta_Box_Discount_Details',
 		);
 
-		$is_invoice = getpaid_is_invoice_post_type( $post->post_type );
+		$is_invoice = ! isset( $post_types_map[ $post->post_type ] ) && getpaid_is_invoice_post_type( $post->post_type );
 
 		if ( ! $is_invoice && ! isset( $post_types_map[ $post->post_type ] ) ) {
 			return;
 		}
 
-		// Dont' save meta boxes for revisions or autosaves.
-		if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || is_int( wp_is_post_revision( $post ) ) || is_int( wp_is_post_autosave( $post ) ) ) {
+		// Check the post being saved == the $post_id to prevent triggering this call for other save_post events.
+		if ( ! is_scalar( $_POST['post_ID'] ) || absint( $_POST['post_ID'] ) !== $post_id ) {
 			return;
 		}
 
 		// Check the nonce.
-		$nonce = isset( $_POST['getpaid_meta_nonce'] ) && is_scalar( $_POST['getpaid_meta_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['getpaid_meta_nonce'] ) ) : '';
-
-		if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'getpaid_meta_nonce' ) ) {
-			return;
-		}
-
-		// Check the post being saved == the $post_id to prevent triggering this call for other save_post events.
-		$posted_id = isset( $_POST['post_ID'] ) && is_scalar( $_POST['post_ID'] ) ? absint( $_POST['post_ID'] ) : 0;
-
-		if ( empty( $posted_id ) || $posted_id !== $post_id ) {
+		if ( ! is_scalar( $_POST['getpaid_meta_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['getpaid_meta_nonce'] ) ), 'getpaid_meta_nonce' ) ) {
 			return;
 		}
 
